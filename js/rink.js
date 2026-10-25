@@ -108,6 +108,7 @@
           <g class="lock-envelope">
             <rect x="${-E.w / 2 + 3}" y="${-E.h / 2 + 4}" width="${E.w}" height="${E.h}" rx="${E.h * 0.12}" fill="var(--ink)" opacity=".08"/>
             <rect x="${-E.w / 2}" y="${-E.h / 2}" width="${E.w}" height="${E.h}" rx="${E.h * 0.12}" fill="url(#r-paper)" stroke="var(--ink)" stroke-width="3"/>
+            <path class="env-creases" d="M${-E.w / 2 + 4} ${E.h / 2 - 4} L${-E.w * 0.08} ${E.h * 0.05} M${E.w / 2 - 4} ${E.h / 2 - 4} L${E.w * 0.08} ${E.h * 0.05}" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" opacity=".55"/>
             <g class="env-flap-c" style="transform-origin: 0px ${-E.h / 2}px; transform-box: view-box"><path d="M${-E.w / 2 + 1} ${-E.h / 2 + 1} L0 ${E.h * 0.12} L${E.w / 2 - 1} ${-E.h / 2 + 1} Z" fill="var(--pink)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/></g>
             <g class="ice-lock has-fxi" transform="translate(0 ${E.h * 0.1})"><g class="fxi">
               <g class="lock-shackle"><path d="M-8 2 v-6 a8 8 0 0 1 16 0 v6" fill="none" stroke="var(--ink)" stroke-width="3.2" stroke-linecap="round"/><path d="M-8 2 v-6 a8 8 0 0 1 16 0 v6" fill="none" stroke="#dcebfb" stroke-width="1.2" stroke-linecap="round"/></g>
@@ -348,7 +349,7 @@
     // the secret little dance: two seconds of very serious synchronised silliness, then back to business
     async function secretDance() {
       if (state.phase !== 'idle' || state.done) return;
-      state.phase = 'busy'; flash(svg.querySelector('.note-btn'), 'pop-in', 400);
+      state.phase = 'busy'; flash(svg.querySelector('.note-btn'), 'pop-in', 400); TA.note('rink.dance');
       try {
         Sound.play('mew'); setTimeout(() => Sound.play('mew'), 500); setTimeout(() => Sound.play('meow'), 1000);
         cheer(2400);
@@ -360,7 +361,7 @@
     }
     async function tapBeat(i) {
       if (state.done || state.phase !== 'idle') return;
-      if (i !== state.beat) { flash(svg.querySelector(`.beat[data-i="${i}"]`), 'shake', 400); Sound.play('nope'); ctx.announce(`beat ${state.beat + 1} first`); return; }
+      if (i !== state.beat) { TA.note('rink.wrong'); flash(svg.querySelector(`.beat[data-i="${i}"]`), 'shake', 400); Sound.play('nope'); ctx.announce(`beat ${state.beat + 1} first`); return; }
       state.phase = 'busy';
       const b = svg.querySelector(`.beat[data-i="${i}"]`); flash(b, 'pop-in', 420); Sound.play('tap'); ctx.announce(`beat ${i + 1}`);
       try {

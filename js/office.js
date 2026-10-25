@@ -4,8 +4,8 @@
    Affairs: the blue cat is the clerk, a carrier pigeon waits at
    the end of the counter. The form below the drawing is her reply
    (app.js builds it); this scene reacts to her decision, drops the
-   clerk onto a "no" button (the bouncer), and sends the pigeon
-   off with the letter once the stamp has come down.
+   clerk onto a "no" button (the bouncer), rides the big stamp down
+   onto the form, and sends the pigeon off with the reply.
    ------------------------------------------------------------ */
 (() => {
   'use strict';
@@ -18,7 +18,8 @@
       tall: { vb: [0, 0, 420, 300], W: 420, H: 300, catH: 112, counter: { y: 204, h: 80 }, clerkX: 150, pigeonX: 356, sign: { x: 190, y: 46, w: 224, fs: 8.6 }, crest: { x: 56, y: 70 }, window: { x: 18, y: 100, w: 64, h: 70 } },
       wide: { vb: [0, 0, 900, 300], W: 900, H: 300, catH: 126, counter: { y: 204, h: 80 }, clerkX: 400, pigeonX: 650, sign: { x: 470, y: 40, w: 330, fs: 12.5 }, crest: { x: 300, y: 72 }, window: { x: 130, y: 86, w: 96, h: 92 } },
     };
-    let svg, layout, container, L, blue, life = null, overlay = null, gagCount = 0, gagGen = 0, gagBusy = false, pigeonBusy = false;
+    let svg, layout, container, L, blue, life = null, overlay = null, gagCount = 0, gagGen = 0, gagBusy = false, stampBusy = false;
+    const overlays = new Set();   // every overlay on the page (the stamp, the pigeon): an unmount removes them
     let blueHome = { x: 0, y: 0 };
 
     const pigeonMarkup = () => `
@@ -101,9 +102,9 @@
       blue.place(blueHome.x, blueHome.y); blue.faceDir(1); blue.setExpression('curious'); blue.lookAt(0, 1);
       // a tap on the clerk: a little professional mew
       blue.el.classList.add('pettable'); blue.el.setAttribute('role', 'img'); blue.el.setAttribute('aria-label', 'the blue cat, on duty');
-      blue.el.addEventListener('click', async (e) => { e.stopPropagation(); if (gagBusy || blue.busy) return; blue.busy = true; try { Sound.play('mew'); const ex = blue.expr; blue.setExpression('pleased'); await blue.tiltTo(-7, 200); await blue.blinkOnce(); await wait(360); await blue.tiltTo(0, 200); blue.setExpression(ex); } finally { blue.busy = false; } });
+      blue.el.addEventListener('click', async (e) => { e.stopPropagation(); if (gagBusy || blue.busy) return; blue.busy = true; TA.note('pet.clerk'); try { Sound.play('mew'); const ex = blue.expr; blue.setExpression('pleased'); await blue.tiltTo(-7, 200); await blue.blinkOnce(); await wait(360); await blue.tiltTo(0, 200); blue.setExpression(ex); } finally { blue.busy = false; } });
       // the hooks app.js calls from the form
-      TA.decisionGag = gag; TA.officeDecision = onDecision; TA.officeStamped = onStamped;
+      TA.decisionGag = gag; TA.officeDecision = onDecision; TA.officeStampAnim = stampAnim; TA.officeDeliver = deliver;
     }
 
     // ---- reactions to the form
@@ -113,40 +114,190 @@
       else if (kind === 'check') { blue.setExpression('curious'); await blue.tiltTo(9, 240); await blue.lookAtViewer(200); }
       else { blue.setExpression('skeptical'); blue.sweatDrop(2200); await blue.tiltTo(8, 240); }
     }
-    async function onStamped(kind, first) {
-      if (!blue) return;
-      // the slam: he jumps, then the news sinks in
-      const ex = { yes: 'delighted', check: 'pleased', no: 'sheepish' }[kind] || 'pleased';
-      blue.setExpression('surprised'); await blue.bounce(12, 360);
-      blue.setExpression(ex);
-      if (kind === 'yes') { spawnHearts(svg.querySelector('.fx'), blue.s.x, blue.s.y - L.catH * 1.05, 5, 36); Sound.play('tada'); }
-      if (kind === 'no') blue.sweatDrop(2400);
-      await dispatch(kind);
+    // ---- the clerk takes the department's stamp from the counter (and brings it back), seen if the counter is on screen
+    async function sceneLeave() {
+      if (!blue) return; const tool = svg.querySelector('.stamp-tool'); if (tool) tool.setAttribute('opacity', '0');
+      if (REDUCED) { blue.el.setAttribute('opacity', '0'); return; }
+      const home = blueHome; blue.setExpression('determined');
+      await tween(240, (t) => { const e = ease.in(t); blue.set({ y: home.y - 90 * e, air: 90 * e, sy: 1 + 0.1 * e }); blue.el.setAttribute('opacity', String(1 - e)); });
+      blue.el.setAttribute('opacity', '0');
     }
-    // the pigeon takes the letter, flies off over the counter and out; comes back for the next one
-    async function dispatch(kind) {
-      if (pigeonBusy || !svg) return; pigeonBusy = true;
-      const p = svg.querySelector('.pigeon'), letter = svg.querySelector('.pigeon-letter'), wing = svg.querySelector('.pigeon-wing');
+    async function sceneReturn() {
+      if (!blue || !svg) return; const tool = svg.querySelector('.stamp-tool'); const home = blueHome;
+      blue.set({ x: home.x, y: home.y - 90, air: 90, sx: 1, sy: 1, lean: 0, raiseL: 0, raiseR: 0 }); blue.setExpression('delighted'); blue.faceDir(1);
+      if (!REDUCED) await tween(300, (t) => { const e = ease.in(t); blue.set({ y: home.y - 90 * (1 - e), air: 90 * (1 - e) }); blue.el.setAttribute('opacity', String(Math.min(1, e * 2))); });
+      blue.set({ y: home.y, air: 0 }); blue.el.setAttribute('opacity', '1'); if (tool) tool.setAttribute('opacity', '1');
+      if (!REDUCED) { Sound.play('land'); spawnHearts(svg.querySelector('.fx'), blue.s.x, blue.s.y - L.catH * 1.05, 4, 30); await blue.settle(220); }
+      blue.setExpression('affectionate');
+    }
+    // an overlay in page coordinates: exactly the page's width (anything wider makes a phone zoom out and jump), from
+    // `top` for `h` px but never past the end of the document; it clips what it draws. Returns local-coordinate helpers.
+    function pageOverlay(top, h, cls = 'stamp-overlay') {
+      const W = document.documentElement.clientWidth; const docH = document.documentElement.scrollHeight;
+      h = Math.max(60, Math.min(h, docH - top));
+      const ov = svgEl('svg', { class: cls, viewBox: `0 0 ${W} ${h.toFixed(0)}`, width: W, height: h.toFixed(0), 'aria-hidden': 'true' });
+      ov.style.left = '0px'; ov.style.top = `${top.toFixed(0)}px`;
+      document.body.appendChild(ov); overlays.add(ov);
+      return { ov, W, H: h, y: (pageY) => pageY - top };
+    }
+    const easeBack = (t) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
+    const INKS = { yes: '#d9678d', check: '#6c7fa6', no: '#575354' };
+
+    // ---- the stamp, on the form itself (an overlay in page coordinates, like the bouncer). A big rubber stamp drops in
+    // above the "for official use only" box, the clerk lands on top of it, takes aim, and rides it down: ka-chunk.
+    // The imprint appears at the impact (onImpact), ink flies, the form jolts; the stamp lifts away to reveal it.
+    async function stampAnim(seal, imprint, kind, onImpact) {
+      if (stampBusy || gagBusy) return; stampBusy = true;
+      const g = gagGen; const alive = () => g === gagGen;
+      const step = async (pr) => { await pr; if (!alive()) throw new Error('gone'); };
+      let ov = null, stop = null, impacted = false;
+      const hit = () => { if (!impacted) { impacted = true; onImpact(); } };
       try {
-        letter.setAttribute('opacity', '1'); Sound.play('pop');
-        await tween(300, (t) => { const b = Math.sin(Math.PI * t); p.setAttribute('transform', `translate(0 ${(-10 * b).toFixed(1)})`); });
-        ctx.caption(C.office.dispatched[kind], 3200);
-        Sound.play('whirr');
-        const dx = -(L.pigeonX + 80), dy = -(L.counter.y + 60);
-        await tween(1500, (t) => { const e = ease.inOut(t); const flap = Math.sin(t * 40) * 0.5; p.setAttribute('transform', `translate(${(dx * e).toFixed(1)} ${(dy * Math.sin(Math.PI * 0.5 * Math.min(1, t * 1.2)) - 30 * Math.sin(Math.PI * t)).toFixed(1)}) rotate(${(-12 * Math.sin(Math.PI * t)).toFixed(1)})`); wing.setAttribute('transform', `scale(1 ${(1 + flap).toFixed(2)})`); });
-        letter.setAttribute('opacity', '0'); wing.removeAttribute('transform');
-        await wait(2200);
-        // back on the counter
-        await tween(1200, (t) => { const e = ease.inOut(t); const flap = Math.sin(t * 40) * 0.5; p.setAttribute('transform', `translate(${(dx * (1 - e)).toFixed(1)} ${(dy * (1 - e) - 24 * Math.sin(Math.PI * t)).toFixed(1)}) rotate(${(8 * Math.sin(Math.PI * t)).toFixed(1)})`); wing.setAttribute('transform', `scale(1 ${(1 + flap).toFixed(2)})`); });
-        p.setAttribute('transform', 'translate(0 0)'); wing.removeAttribute('transform'); Sound.play('land');
-      } finally { pigeonBusy = false; }
+        // measure the imprint (it stays hidden until the impact) so the stamp's face covers it exactly
+        imprint.querySelector('span').textContent = C.office.stamps[kind]; imprint.className = `doc-stamp stamp-${kind}`;
+        imprint.style.visibility = 'hidden'; imprint.hidden = false;
+        const iw = imprint.offsetWidth, ih = imprint.offsetHeight; const ir = imprint.getBoundingClientRect();
+        imprint.hidden = true; imprint.style.visibility = '';
+        if (REDUCED) { hit(); Sound.play('stamp'); return; }
+        const cxPage = ir.left + ir.width / 2, cy = ir.top + ir.height / 2 + window.scrollY;
+        const ANG = -12, CATH = 54, inkCol = INKS[kind] || INKS.yes;
+        const bw = iw + 16, bh = ih + 12, top = -bh / 2, neckH = 30, knobRx = 25, knobRy = 14;
+        const knobCy = top - neckH - knobRy + 3, knobTop = knobCy - knobRy;
+        const plateH = Math.min(16, bh * 0.36), plateY = top + (bh - 8 - plateH) / 2;
+        const oTop = Math.min(window.scrollY - 20, cy - 430);
+        const pg = pageOverlay(oTop, cy + 190 - oTop); ov = pg.ov; const W = pg.W, FACE = pg.y(cy), X0 = cxPage;
+        ov.innerHTML = `
+          <g class="paper" transform="translate(${X0} ${FACE}) rotate(${ANG})"><ellipse class="stamp-shadow" cx="0" cy="${bh / 2 - 2}" rx="${bw * 0.55}" ry="8" fill="var(--ink)" opacity="0"/><g class="ink-fx"></g></g>
+          <g class="rig">
+            <g class="stamp-body">
+              <rect x="${-bw / 2 + 3}" y="${bh / 2 - 9}" width="${bw - 6}" height="9" rx="2" fill="${inkCol}" stroke="var(--ink)" stroke-width="2.2"/>
+              <rect x="${-bw / 2}" y="${top}" width="${bw}" height="${bh - 8}" rx="7" fill="#f3d7a7" stroke="var(--ink)" stroke-width="2.8"/>
+              <path d="M${-bw / 2 + 9} ${top + 6} h${bw - 18}" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".75"/>
+              <rect x="${-bw * 0.32}" y="${plateY}" width="${bw * 0.64}" height="${plateH}" rx="3" fill="#fffdf7" stroke="var(--ink)" stroke-width="1.8"/>
+              <text class="ui-text" x="0" y="${plateY + plateH * 0.74}" text-anchor="middle" font-size="${Math.min(10, plateH * 0.62)}" letter-spacing="1.6" fill="${inkCol}">${C.office.stamps[kind].toUpperCase()}</text>
+              <rect x="-15" y="${top - 6}" width="30" height="7" rx="2.5" fill="#e9c08a" stroke="var(--ink)" stroke-width="2.2"/>
+              <rect x="-8" y="${top - neckH}" width="16" height="${neckH - 5}" rx="4" fill="#f6e7c6" stroke="var(--ink)" stroke-width="2.4"/>
+              <ellipse cx="0" cy="${knobCy}" rx="${knobRx}" ry="${knobRy}" fill="#f49fbb" stroke="var(--ink)" stroke-width="2.8"/>
+              <path d="M${-knobRx * 0.55} ${knobCy - knobRy * 0.3} q${knobRx * 0.4} ${-knobRy * 0.55} ${knobRx * 0.85} ${-knobRy * 0.2}" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".8"/>
+            </g>
+            <g class="rider">${Cat.markup('stamper', 'blue')}</g>
+          </g>
+          <g class="pow"></g>`;
+        const rig = ov.querySelector('.rig'), body = ov.querySelector('.stamp-body'), shadow = ov.querySelector('.stamp-shadow');
+        const cat = Cat.attach(ov, 'stamper', 'blue', CATH); stop = Cat.life([cat]);
+        let lift = 0, wob = 0, sqx = 1, sqy = 1, catDY = 0;
+        const draw = () => {
+          rig.setAttribute('transform', `translate(${X0} ${FACE}) rotate(${(ANG + wob).toFixed(2)}) translate(0 ${(-lift).toFixed(1)})`);
+          body.setAttribute('transform', `translate(0 ${bh / 2}) scale(${sqx.toFixed(3)} ${sqy.toFixed(3)}) translate(0 ${-bh / 2})`);
+          const near = Math.max(0, 1 - lift / 180); shadow.setAttribute('opacity', (0.16 * near).toFixed(3)); shadow.setAttribute('rx', (bw * (0.35 + 0.2 * near)).toFixed(1));
+          cat.place(0, bh / 2 + (knobTop - bh / 2) * sqy + 1 + catDY);
+        };
+        const L0 = FACE + (bh / 2 - knobTop) + CATH * 1.3 + 30;   // starts above the overlay's top edge, i.e. above the screen
+        const HOVER = 94;   // hangs right over the box
+        lift = L0; cat.el.setAttribute('opacity', '0'); draw();
+        sceneLeave();
+        // 1. the stamp drops in and hangs above the box
+        Sound.play('whoosh');
+        await step(tween(480, (t) => { lift = L0 + (HOVER - L0) * easeBack(t); draw(); }));
+        // 2. he lands on top of it (the stamp dips under him)
+        cat.setExpression('determined'); cat.faceDir(1); cat.lookAt(0, 1);
+        const C0 = -(FACE - HOVER + CATH * 1.4 + 40); catDY = C0; cat.el.setAttribute('opacity', '1');   // he drops in from above the screen too
+        await step(tween(320, (t) => { const e = t * t; catDY = C0 * (1 - e); cat.set({ air: -catDY, sy: 1 + 0.08 * (1 - e) }); draw(); }));
+        catDY = 0; cat.set({ air: 0 }); Sound.play('land');
+        await step(tween(220, (t) => { const b = Math.sin(Math.PI * t); lift = HOVER - 12 * b; cat.set({ sy: 1 - 0.16 * b, sx: 1 + 0.08 * b }); draw(); }));
+        // 3. he takes aim: a little wiggle, up a touch (the wind-up), eyes on the box
+        cat.lookDown(0.8, 200);
+        await step(tween(460, (t) => { wob = 3.4 * Math.sin(t * Math.PI * 4) * (1 - t); lift = HOVER + 30 * ease.out(t); cat.set({ sy: 1 - 0.12 * ease.out(t), sx: 1 + 0.06 * ease.out(t) }); draw(); }));
+        wob = 0; await step(wait(90));
+        // 4. ka-CHUNK
+        const L1 = lift;
+        await step(tween(120, (t) => { lift = L1 * (1 - t * t); draw(); }));
+        lift = 0; draw(); hit(); Sound.play('thunk'); Sound.play('stamp');
+        burst(ov, W, X0, FACE, ANG, bw, bh, inkCol);
+        await step(tween(120, (t) => { const b = Math.sin(Math.PI * t); sqy = 1 - 0.1 * b; sqx = 1 + 0.05 * b; cat.set({ sy: 0.76 + 0.24 * t, sx: 1.18 - 0.18 * t }); draw(); }));
+        sqx = sqy = 1; cat.set({ sx: 1, sy: 1 }); draw();
+        // 5. he is delighted with himself
+        cat.gazeReset(160); cat.setExpression('delighted'); cat.guard(true); Sound.play('meow');
+        await step(tween(340, (t) => { const b = Math.sin(Math.PI * t); catDY = -16 * b; cat.set({ air: 16 * b, sy: 1 + 0.06 * b }); draw(); }));
+        catDY = 0; cat.set({ air: 0, sy: 1 }); hearts(ov, X0, FACE + knobTop - CATH * 0.9); await step(wait(280));
+        // 6. the stamp lifts away: there it is. Then off, back to the counter
+        cat.guard(false); cat.setExpression('affectionate');
+        await step(tween(360, (t) => { lift = 74 * ease.out(t); draw(); }));
+        await step(wait(160));
+        await step(tween(400, (t) => { lift = 74 + (L0 - 74) * t * t; draw(); ov.setAttribute('opacity', String(1 - Math.max(0, (t - 0.65) / 0.35))); }));
+      } catch (e) { if (!e || e.message !== 'gone') throw e; }
+      finally {
+        if (alive()) hit();   // the imprint always lands, whatever happened to the animation
+        if (stop) stop(); if (ov) { ov.remove(); overlays.delete(ov); } stampBusy = false;
+        if (alive() && !REDUCED) sceneReturn(); else if (alive()) { const tool = svg && svg.querySelector('.stamp-tool'); if (tool) tool.setAttribute('opacity', '1'); if (blue) blue.el.setAttribute('opacity', '1'); }
+      }
     }
+    // ink flies off the edges of the stamp's face, impact lines, and a little "ka-chunk!"
+    function burst(ov, W, X0, FACE, ANG, bw, bh, inkCol) {
+      const fx = ov.querySelector('.ink-fx'), pow = ov.querySelector('.pow'); const y0 = bh / 2 - 2;
+      const drops = Array.from({ length: 12 }, (_, i) => { const side = i % 2 ? 1 : -1; return { x: side * (bw / 2 - 4 + Math.random() * 6), y: y0 - Math.random() * 6, vx: side * (50 + Math.random() * 70), vy: -(30 + Math.random() * 70), r: 1.6 + Math.random() * 2.2 }; });
+      fx.innerHTML = drops.map((d) => `<circle cx="0" cy="0" r="${d.r.toFixed(1)}" fill="${inkCol}"/>`).join('') +
+        [-1, 1].map((side) => [12, 38, 64].map((a) => { const rad = (a * Math.PI) / 180; const ux = side * Math.cos(rad), uy = -Math.sin(rad); const x1 = side * (bw / 2 + 6), y1 = y0 - 2; return `<path class="pow-line" d="M${(x1 + ux * 5).toFixed(1)} ${(y1 + uy * 5).toFixed(1)} L${(x1 + ux * 18).toFixed(1)} ${(y1 + uy * 18).toFixed(1)}" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/>`; }).join('')).join('');
+      const dots = [...fx.querySelectorAll('circle')], lines = [...fx.querySelectorAll('.pow-line')];
+      const left = X0 - bw / 2 - 10 > 96; const tx = left ? X0 - bw / 2 - 12 : X0 + bw / 2 + 12, ty = FACE - bh / 2 - 8;
+      pow.innerHTML = `<text class="kachunk" x="${tx}" y="${ty}" text-anchor="${left ? 'end' : 'start'}" font-size="21" transform="rotate(-8 ${tx} ${ty})">${C.office.kachunk}</text>`;
+      const word = pow.firstElementChild;
+      tween(560, (t) => {
+        dots.forEach((el, i) => { const d = drops[i]; const tt = t * 0.56; el.setAttribute('cx', (d.x + d.vx * tt).toFixed(1)); el.setAttribute('cy', (d.y + d.vy * tt + 260 * tt * tt).toFixed(1)); el.setAttribute('opacity', String(1 - Math.max(0, (t - 0.45) / 0.55))); });
+        lines.forEach((el) => el.setAttribute('opacity', String(t < 0.4 ? 1 : 1 - (t - 0.4) / 0.6)));
+        const s = t < 0.25 ? 0.6 + 1.9 * t : 1.08 - 0.08 * Math.min(1, (t - 0.25) / 0.2);
+        word.setAttribute('transform', `rotate(-8 ${tx} ${ty}) translate(${tx} ${ty}) scale(${s.toFixed(3)}) translate(${-tx} ${-ty})`);
+      }).then(() => { tween(420, (t) => word.setAttribute('opacity', String(1 - t))).then(() => { fx.innerHTML = ''; pow.innerHTML = ''; }); });
+    }
+    function hearts(ov, x, y) {
+      const fx = ov.querySelector('.pow'); const hs = [-16, 6, 22].map((dx, i) => { const u = svgEl('use', { href: '#sym-heart', x: x + dx - 7, y: y - 6, width: 14, height: 13 }); fx.appendChild(u); return { u, dx, d: i * 90 }; });
+      const t0 = performance.now();
+      tween(900, (t) => hs.forEach((h) => { const tt = Math.max(0, Math.min(1, (t * 900 - h.d) / 700)); h.u.setAttribute('transform', `translate(${(Math.sin(tt * 6 + h.dx) * 3).toFixed(1)} ${(-34 * tt).toFixed(1)})`); h.u.setAttribute('opacity', String(tt < 0.7 ? 1 : 1 - (tt - 0.7) / 0.3)); })).then(() => hs.forEach((h) => h.u.remove()));
+    }
+
+    // ---- the delivery: the pigeon flies in to the box, the stamped reply pops out of it as an envelope and into its
+    // beak, a polite coo, and it is off with it (the counter's pigeon is out on delivery for a while)
+    async function deliver(seal, kind) {
+      ctx.caption(C.office.dispatched[kind], 3400);
+      if (REDUCED || !alivePage()) return;
+      const g = gagGen; const alive = () => g === gagGen;
+      const r = seal.getBoundingClientRect(); const sealY = r.top + r.height / 2 + window.scrollY; const S = 1.5;
+      const oTop = Math.min(window.scrollY - 20, sealY - 470);
+      const pg = pageOverlay(oTop, sealY + 70 - oTop); const ov = pg.ov, W = pg.W;
+      const P = { x: r.left + r.width / 2, y: pg.y(sealY) };
+      ov.innerHTML = `<g class="env-pop" opacity="0">${Doodle.envelope(-14, -10, 28, 20, 2.2)}</g><g class="bird">${pigeonMarkup()}</g>`;
+      const bird = ov.querySelector('.bird'), wing = bird.querySelector('.pigeon-wing'), letter = bird.querySelector('.pigeon-letter'), env = ov.querySelector('.env-pop');
+      const sh = bird.querySelector('.pigeon > ellipse'); if (sh) sh.setAttribute('opacity', '0');
+      const home = svg ? svg.querySelector('.pigeon') : null; if (home) home.setAttribute('opacity', '0');
+      const at = (x, y, tilt, flap) => { bird.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${tilt.toFixed(1)}) scale(${S})`); wing.setAttribute('transform', `rotate(${(flap * 38).toFixed(1)} 6 -18)`); };
+      try {
+        const hover = { x: Math.min(W - 40, P.x + 40), y: P.y - 40 }, start = { x: W + 70, y: P.y - 190 };
+        Sound.play('flap');
+        await tween(720, (t) => { const e = ease.out(t); at(start.x + (hover.x - start.x) * e, start.y + (hover.y - start.y) * e - 14 * Math.sin(Math.PI * e), -10 * (1 - e), Math.sin(t * 46)); });
+        if (!alive()) return;
+        // the reply pops out of the box and flies up into its beak
+        env.setAttribute('opacity', '1'); Sound.play('pop');
+        const beak = { x: hover.x - 25 * S, y: hover.y - 24.5 * S };
+        await tween(400, (t) => { const e = ease.inOut(t); const x = P.x + (beak.x - P.x) * e, y = P.y + (beak.y - P.y) * e - 22 * Math.sin(Math.PI * t); const sc = Math.min(1, t * 3.2) * (1 - 0.22 * e); env.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(-10 * e).toFixed(1)}) scale(${sc.toFixed(3)})`); at(hover.x, hover.y + 2 * Math.sin(t * 20), 0, Math.sin(t * 46)); });
+        env.setAttribute('opacity', '0'); letter.setAttribute('opacity', '1'); Sound.play('coo');
+        await tween(260, (t) => at(hover.x, hover.y + 3 * Math.sin(Math.PI * t), 10 * Math.sin(Math.PI * t), 0.3 * Math.sin(t * 30)));   // a polite nod
+        if (!alive()) return;
+        Sound.play('flap');
+        const end = { x: -90, y: -200 };
+        await tween(920, (t) => { const e = t * t; at(hover.x + (end.x - hover.x) * e, hover.y + (end.y - hover.y) * e, -16 * Math.min(1, t * 2), Math.sin(t * 60)); });
+      } finally {
+        ov.remove(); overlays.delete(ov);
+        // back on the counter in a while
+        if (home) setTimeout(() => { if (!home.isConnected) return; home.setAttribute('opacity', '1'); if (!REDUCED) tween(420, (t) => { const e = ease.out(t); home.setAttribute('transform', `translate(0 ${(-40 * (1 - e)).toFixed(1)})`); }).then(() => { home.setAttribute('transform', 'translate(0 0)'); Sound.play('land'); }); }, 2600);
+      }
+    }
+    const alivePage = () => !!(svg && svg.isConnected);
 
     // ---- the bouncer. A "no" decision makes the clerk leave the counter, drop out of the sky onto the button she
     // tapped, plant himself on it with both paws up, stare, and shake his head; then he hops back up and returns.
     // He never gives in (the answer stays on "yes"); the bubbles rotate so a fourth try still gets a new line.
     async function gag(chip) {
-      if (gagBusy || !blue || !chip) return false;
+      if (gagBusy || stampBusy || !blue || !chip) return false;
       gagBusy = true; gagCount++; const nth = gagCount; const g = ++gagGen; const alive = () => g === gagGen && !!blue;
       const T = C.office.gag; const home = blueHome; const pigeon = svg.querySelector('.pigeon');
       try {
@@ -177,25 +328,27 @@
     }
     // the overlay cat: an SVG in page coordinates, pinned to the button, never catching taps
     async function bouncer(chip, nth, text, alive) {
-      const r = chip.getBoundingClientRect(); const sx = window.scrollX, sy = window.scrollY;
-      const W = 340, H = 280, GROUND = H - 30, CATH = 58;                        // px; a paperweight-sized cat, feet on the button's bottom edge
-      const cx = r.left + sx + r.width / 2, ground = r.top + sy + r.height + 1; const top = ground - GROUND;
-      const ov = svgEl('svg', { class: 'bouncer', viewBox: `0 0 ${W} ${H}`, width: W, height: H, 'aria-hidden': 'true' });
-      ov.style.left = `${cx - W / 2}px`; ov.style.top = `${top}px`;
+      const r = chip.getBoundingClientRect(); const sy = window.scrollY; const CATH = 58;   // a paperweight-sized cat, feet on the button's bottom edge
+      const ground = r.top + sy + r.height + 1; const oTop = Math.min(sy - 20, ground - 260);
+      const pg = pageOverlay(oTop, ground + 34 - oTop, 'bouncer'); const ov = pg.ov, W = pg.W; overlays.delete(ov);
+      const CX = r.left + r.width / 2, GROUND = pg.y(ground);
       ov.innerHTML = `<g class="cats">${Cat.markup('bouncer', 'blue')}</g><g class="bubble" opacity="0"></g>`;
-      if (overlay) overlay.remove(); overlay = ov; document.body.appendChild(ov);
+      if (overlay) overlay.remove(); overlay = ov;
       let stop = null, cat = null;
       try { cat = Cat.attach(ov, 'bouncer', 'blue', CATH); stop = Cat.life([cat]); } catch (e) { ov.remove(); overlay = null; throw e; }
-      const y0 = Math.min(GROUND - 150, (sy - 120) - top);                       // from above the visible top (or well above the button)
+      const y0 = -CATH * 1.4;                                                    // from above the overlay's top edge, i.e. above the screen
       const say = (txt) => {
-        // beside his head, to the right, with the tail pointing at him
-        const b = ov.querySelector('.bubble'); const w = Math.max(54, txt.length * 11 + 26), h = 34; const bx = W / 2 + CATH * 0.72, by = GROUND - CATH * 0.78 - h / 2;
-        b.innerHTML = `<path d="M${bx + 2} ${by + h * 0.42} l-12 6 l12 8 z" fill="#fffdfc" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/><rect x="${bx}" y="${by}" width="${w}" height="${h}" rx="${h / 2}" fill="#fffdfc" stroke="var(--ink)" stroke-width="2.2"/><rect x="${bx + 1}" y="${by + h * 0.42 + 1}" width="5" height="12" fill="#fffdfc"/><text x="${bx + w / 2}" y="${by + h * 0.68}" text-anchor="middle" font-size="17">${txt}</text>`;
+        // beside his head, with the tail pointing at him: to the right if there is room, else to the left
+        const b = ov.querySelector('.bubble'); const w = Math.max(54, txt.length * 11 + 26), h = 34; const by = GROUND - CATH * 0.78 - h / 2;
+        const right = CX + CATH * 0.72 + w <= W - 6; const bx = right ? CX + CATH * 0.72 : CX - CATH * 0.72 - w;
+        const tail = right ? `M${bx + 2} ${by + h * 0.42} l-12 6 l12 8 z` : `M${bx + w - 2} ${by + h * 0.42} l12 6 l-12 8 z`;
+        const patch = right ? `<rect x="${bx + 1}" y="${by + h * 0.42 + 1}" width="5" height="12" fill="#fffdfc"/>` : `<rect x="${bx + w - 6}" y="${by + h * 0.42 + 1}" width="5" height="12" fill="#fffdfc"/>`;
+        b.innerHTML = `<path d="${tail}" fill="#fffdfc" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/><rect x="${bx}" y="${by}" width="${w}" height="${h}" rx="${h / 2}" fill="#fffdfc" stroke="var(--ink)" stroke-width="2.2"/>${patch}<text x="${bx + w / 2}" y="${by + h * 0.68}" text-anchor="middle" font-size="17">${txt}</text>`;
         b.setAttribute('opacity', '1'); flash(b, 'pop-in', 300);
       };
       const relent = false; const hold = (ms) => new Promise((res) => setTimeout(res, ms));   // a real pause even under reduced motion (the bubble must be readable)
       try {
-        cat.setExpression('determined'); cat.faceDir(1); cat.place(W / 2, y0); cat.set({ air: GROUND - y0 });
+        cat.setExpression('determined'); cat.faceDir(1); cat.place(CX, y0); cat.set({ air: GROUND - y0 });
         if (REDUCED) cat.set({ y: GROUND, air: 0 });
         else await tween(440, (t) => { const e = t * t; cat.set({ y: y0 + (GROUND - y0) * e, air: (GROUND - y0) * (1 - e), sy: 1 + 0.1 * (1 - e), sx: 1 - 0.06 * (1 - e) }); });
         if (!alive()) return relent;
@@ -221,7 +374,7 @@
           if (!REDUCED) await tween(360, (t) => { const e = ease.inOut(t); cat.set({ sy: 1 - 0.06 * Math.sin(Math.PI * e), tilt: 9 * e }); });
           await (REDUCED ? hold(900) : wait(600));
           ov.querySelector('.bubble').setAttribute('opacity', '0'); cat.guard(false);
-          if (!REDUCED) { const xo = W / 2 + r.width / 2 + 54; await cat.hopTo(xo, GROUND + 14, { height: 26, dur: 440 }); await wait(140); Sound.play('hop'); await tween(360, (t) => { const e = t * t; cat.set({ y: GROUND + 14 - (GROUND + 14 - y0) * e, air: (GROUND + 14 - y0) * e }); }); }
+          if (!REDUCED) { const xo = Math.min(W - 30, CX + r.width / 2 + 54); await cat.hopTo(xo, GROUND + 14, { height: 26, dur: 440 }); await wait(140); Sound.play('hop'); await tween(360, (t) => { const e = t * t; cat.set({ y: GROUND + 14 - (GROUND + 14 - y0) * e, air: (GROUND + 14 - y0) * e }); }); }
         }
         return relent;
       } finally { if (stop) stop(); ov.remove(); if (overlay === ov) overlay = null; }
@@ -229,7 +382,7 @@
 
     return {
       mount(c, l) { container = c; layout = l; L = LAY[l]; render(); },
-      unmount() { gagGen++; if (overlay) { overlay.remove(); overlay = null; } gagBusy = false; pigeonBusy = false; if (life) life(); life = null; blue = null; TA.decisionGag = null; TA.officeDecision = null; TA.officeStamped = null; },
+      unmount() { gagGen++; if (overlay) { overlay.remove(); overlay = null; } overlays.forEach((o) => o.remove()); overlays.clear(); gagBusy = false; stampBusy = false; if (life) life(); life = null; blue = null; TA.decisionGag = null; TA.officeDecision = null; TA.officeStampAnim = null; TA.officeDeliver = null; },
     };
   });
 })();

@@ -129,6 +129,7 @@
               <path d="M-30 -92 h60 q3 0 3 3 q0 3 -3 3 h-60 q-3 0 -3 -3 q0 -3 3 -3 z" fill="${COL.helmet2}" stroke="${INK}" stroke-width="${SW * 0.8}" stroke-linejoin="round"/>
               <path d="M-12 -104 q6 -6 14 -8" fill="none" stroke="#fff" stroke-width="${SW * 0.6}" stroke-linecap="round" opacity=".8"/>
             </g></g>
+            <g class="cc-snowcap" opacity="0"><path d="M-23 -89 q-4 -12 9 -15 q2 -11 14 -9 q9 -8 18 1 q12 0 9 12 q-1 7 -10 7 h-31 q-6 0 -9 4 z" fill="#fff" stroke="${INK}" stroke-width="${SW * 0.7}" stroke-linejoin="round"/><circle cx="-7" cy="-99" r="1.7" fill="#cfe2f6"/><circle cx="9" cy="-103" r="1.5" fill="#cfe2f6"/><circle cx="20" cy="-96" r="1.3" fill="#cfe2f6"/></g>
             <g class="cc-sweat" opacity="0"><path d="M44 -84 q-4 7 -4 10 a4 4 0 0 0 8 0 q0 -3 -4 -10 z" fill="#cfe4fb" stroke="${INK}" stroke-width="${SW * 0.55}" stroke-linejoin="round"/></g>
             <g class="cc-paws">
               <path class="cc-paw cc-paw-l" d="${T.pawL}" fill="${INK}"/>
@@ -152,10 +153,10 @@
       this.eyesG = this.q('.cc-eyes'); this.mouthG = this.q('.cc-mouth'); this.blushG = this.q('.cc-blush');
       this.pawL = this.q('.cc-paw-l'); this.pawR = this.q('.cc-paw-r'); this.raiseL = this.q('.cc-raise-l'); this.raiseR = this.q('.cc-raise-r');
       this.shadowG = this.q('.cc-shadow'); this.shadowEl = this.shadowG.firstElementChild; this.skatesG = this.q('.cc-skates');
-      this.coverG = this.q('.cc-cover'); this.helmetG = this.q('.cc-helmet'); this.helmetY = this.q('.cc-helmet-y'); this.sweatG = this.q('.cc-sweat');
+      this.coverG = this.q('.cc-cover'); this.helmetG = this.q('.cc-helmet'); this.helmetY = this.q('.cc-helmet-y'); this.sweatG = this.q('.cc-sweat'); this.snowcapG = this.q('.cc-snowcap');
       this.mirror = kind === 'pink' ? -1 : 1;
       // authoritative state
-      this.s = { x: 0, y: 0, flip: 1, lean: 0, sx: 1, sy: 1, bob: 0, tilt: 0, gaze: 0, blink: 0, earL: 0, earR: 0, tail: 0, tailIdle: 0, breath: 1, back: false, pawL: 0, pawR: 0, raiseL: 0, raiseR: 0, air: 0, skates: 0, gazeY: 0, cover: 0, helmet: 0, helmetDrop: 0, sweat: 0, spin: 0 };
+      this.s = { x: 0, y: 0, flip: 1, lean: 0, sx: 1, sy: 1, bob: 0, tilt: 0, gaze: 0, blink: 0, earL: 0, earR: 0, tail: 0, tailIdle: 0, breath: 1, back: false, pawL: 0, pawR: 0, raiseL: 0, raiseR: 0, air: 0, skates: 0, gazeY: 0, cover: 0, helmet: 0, helmetDrop: 0, sweat: 0, spin: 0, snowcap: 0 };
       this.expr = 'shy'; this.exprBase = EXPRESSIONS.shy;
       this.busy = false; this.phase = Math.random() * 7; this.nextBlink = 1.5 + Math.random() * 3;
       this.setExpression('shy');
@@ -189,6 +190,7 @@
       this.coverG.setAttribute('opacity', s.cover ? '1' : '0'); this.coverG.setAttribute('transform', this.face.getAttribute('transform'));
       this.helmetG.setAttribute('opacity', s.helmet ? '1' : '0'); this.helmetY.setAttribute('transform', `translate(0 ${(-s.helmetDrop).toFixed(2)})`);
       this.sweatG.setAttribute('opacity', s.sweat ? String(s.sweat) : '0');
+      this.snowcapG.setAttribute('opacity', s.snowcap ? String(s.snowcap) : '0');
       this.face.setAttribute('opacity', s.back ? '0' : '1');
       this.blushG.setAttribute('opacity', this.exprBase.blush && !s.back ? '1' : '0');
       // blink: swap eyes to closed lines while blinking (dots/wide only)
@@ -482,8 +484,9 @@
       e.preventDefault(); e.stopPropagation();
       if (busy || (idle && !idle())) return;
       busy = true;
+      if (TA.note) TA.note(`pet.${c.kind}`);
       try {
-        if (c === pink && ++pinkTaps % 3 === 0) await bashful();
+        if (c === pink && ++pinkTaps % 3 === 0) { if (TA.note) TA.note('pet.bashful'); await bashful(); }
         else { let i; do { i = Math.floor(Math.random() * reactions.length); } while (i === last); last = i; await reactions[i](c); }
       } finally { busy = false; }
     };

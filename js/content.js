@@ -41,12 +41,18 @@ window.TA_CONTENT = {
     instruction: 'a true story from geneva. mostly.',
     skip: 'skip the flashback',
     captions: {
-      arrive: 'once upon a time, a very clever cat visited geneva...',
+      arrive: 'once upon a time, in geneva...',
+      bus: 'he walked her to the bus. she had work.',
+      back: 'then he went back to her place to wait for her.',
       problem: 'there was just one tiny problem.',
       forgot: 'he forgot the door code.',
       plan: 'fortunately, he had a perfectly reasonable backup plan.',
-      her: 'oh. it’s this guy again.',
+      setback: 'minor setback.',
+      setback2: 'slightly bigger setback.',
+      later: '...a few hours later.',
+      her: 'oh. my. gosh.',
     },
+    busSign: 'work',
     bridge: 'some cats never learn.',
     bridge2: 'good thing we’re building proper stairs this time.',
     next: 'build proper stairs',
@@ -92,10 +98,6 @@ window.TA_CONTENT = {
     byHandNote: 'lovely. any paper will do. don’t forget the secret word.',
     toOffice: 'file the official paperwork ♡',
     toOfficeHint: 'the department needs your decision in writing.',
-    letter: (answer, date, note, word) =>
-      `dear blue cat,\n\nmy answer: ${answer}\nthe date that works for me: ${date}` +
-      (note ? `\n\na little note: ${note}` : '') +
-      `\n\nsecret word: ${word}\n\n♡ pink cat`,
   },
 
   // the last view: the department's counter, and the application that doubles as her reply
@@ -103,7 +105,7 @@ window.TA_CONTENT = {
     eyebrow: 'one last formality',
     title: 'the official paperwork',
     instruction: 'the department of extremely important romantic affairs requires her majesty’s decision in writing.',
-    helper: 'pick what fits, add a remark if you like, then stamp it.',
+    helper: 'choose her majesty’s decision and a date, then stamp it.',
     doc: {
       title: 'official date application',
       dept: 'department of extremely important romantic affairs',
@@ -119,21 +121,58 @@ window.TA_CONTENT = {
     },
     decision: 'her majesty’s decision',
     date: 'preferred date',
-    remarks: 'royal remarks (optional)',
-    remarksPlaceholder: 'a little note for the applicant...',
-    stampBtn: 'stamp it ♡',
-    restampBtn: 'stamp it again',
+    stampBtn: 'stamp',
+    restampBtn: 'stamp again',
+    stampWait: 'choose a decision and a date first.',
+    sealLabel: 'for official use only',
+    kachunk: 'ka-chunk!',
     stamps: { yes: 'approved', check: 'pending', no: 'declined' },
     gag: ['no.', 'nice try.', 'still no.', 'we’ve been over this.'],   // what the clerk says when he drops onto a "no" button; he never lets it through
-    dispatched: { yes: 'carrier pigeon dispatched. he is beside himself.', check: 'carrier pigeon dispatched. he will wait by the window.', no: 'carrier pigeon dispatched. he has filed an appeal.' },
+    notified: 'a copy has also gone straight to the department’s phone.',   // shown once the real notification has left (js/notify.js)
+    dispatched: { yes: 'carrier pigeon dispatched. the applicant is beside himself.', check: 'carrier pigeon dispatched. the applicant will wait by the window.', no: 'carrier pigeon dispatched. the applicant has filed an appeal.' },
     replyTitle: 'the official reply',
-    replyHint: 'this is the letter the pigeon carries. the pigeon is imaginary, so please copy it into a message (or write it by hand).',
-    copy: 'copy my little letter',
-    copied: 'copied! paste it into a message ♡',
-    copyFail: 'your browser blocked copying, so here is the letter to select and copy by hand:',
-    byHand: 'write it by hand instead ♡',
-    byHandNote: 'lovely. any paper will do. don’t forget the secret word.',
+    replyHint: 'the following correspondence is to be delivered by carrier pigeon. the pigeon being imaginary, kindly copy it into a message (or transcribe it by hand).',
+    copy: 'copy the official reply',
+    copied: 'copied. kindly paste it into a message ♡',
+    copyFail: 'your browser blocked copying, so here is the reply to select and copy by hand:',
+    byHand: 'transcribe it by hand instead ♡',
+    byHandNote: 'splendid. any parchment will do. kindly include the authorization code.',
     replay: 'replay our little adventure',
+    // the reply itself: overly formal, as is proper. The royal we. (kind: yes / check / no; dateIdx: index into epilogue.dateChoices)
+    letter: (kind, dateIdx, word) => {
+      const decision = {
+        yes: 'with reference to your application of recent date, we are pleased to inform you that, following careful and entirely impartial deliberation, it has been approved.',
+        check: 'with reference to your application of recent date, we wish to inform you that it remains under careful consideration.',
+        no: 'with reference to your application of recent date, we regret to inform you that it cannot be granted at this time.',
+      }[kind] || '';
+      const when = [
+        'we shall attend art on ice on friday the 5th.',
+        'we shall attend art on ice on saturday the 6th.',
+        'either date is agreeable to us. the applicant may choose (wisely).',
+        'we kindly request that an alternative date be proposed at the applicant’s earliest convenience.',
+      ][dateIdx] || '';
+      return [
+        'to: the department of extremely important romantic affairs',
+        'attn: one suspiciously enthusiastic blue cat',
+        're: official date application no. 1 (art on ice)',
+        '',
+        'dear sir,',
+        '',
+        decision,
+        '',
+        when,
+        '',
+        `secret authorization code: ${word}`,
+        '',
+        'kindly acknowledge receipt at your earliest convenience.',
+        '',
+        'yours most faithfully,',
+        'her majesty the pink cat ♡',
+        '',
+        'signed, sealed and stamped.',
+        'p.s. the pigeon has been fed.',
+      ].join('\n');
+    },
   },
 
   ui: {

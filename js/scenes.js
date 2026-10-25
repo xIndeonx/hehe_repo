@@ -318,9 +318,12 @@
     const solved = (i) => state.rot[i] % 180 === 0;
     const tileCenters = () => { const L = LAY[layout]; return [0, 1, 2].map((i) => ({ x: L.tx + i * (L.tile + L.gap) + L.tile / 2, y: L.ty + L.tile / 2 })); };
     function stubIn() { const L = LAY[layout]; const c = tileCenters(); const s = L.start;
-      return layout === 'wide' ? `M${s.x} ${s.y} C ${s.x + 150} ${s.y}, ${c[0].x - 120} ${c[0].y}, ${c[0].x - L.tile / 2} ${c[0].y}` : `M${s.x} ${s.y} C ${s.x - 40} ${s.y + 40}, ${c[0].x - L.tile / 2 - 40} ${c[0].y - 20}, ${c[0].x - L.tile / 2} ${c[0].y}`; }
+      // (portrait: they start above the first piece, so the lane goes round its corner from outside and enters its left edge)
+      return layout === 'wide' ? `M${s.x} ${s.y} C ${s.x + 150} ${s.y}, ${c[0].x - 120} ${c[0].y}, ${c[0].x - L.tile / 2} ${c[0].y}` : `M${s.x} ${s.y} C ${c[0].x - L.tile / 2 - 10} ${s.y}, ${c[0].x - L.tile / 2 - 28} ${c[0].y}, ${c[0].x - L.tile / 2} ${c[0].y}`; }
     function stubOut() { const L = LAY[layout]; const c = tileCenters();
-      return layout === 'wide' ? `M${c[2].x + L.tile / 2} ${c[2].y} C ${c[2].x + 90} ${c[2].y}, ${L.end.x + 10} ${c[2].y + 30}, ${L.end.x} ${L.end.y}` : `M${c[2].x + L.tile / 2} ${c[2].y} C ${c[2].x + L.tile / 2 + 16} ${c[2].y + 70}, ${L.end.x + 10} ${c[2].y + 100}, ${L.end.x} ${L.end.y}`; }
+      // off the last piece's right edge, down around its corner (never back over the piece), then to the booth
+      const ex = c[2].x + L.tile / 2, ey = c[2].y;
+      return layout === 'wide' ? `M${ex} ${ey} C ${ex + 48} ${ey}, ${ex + 38} ${ey + 80}, ${L.end.x} ${L.end.y}` : `M${ex} ${ey} C ${ex + 20} ${ey}, ${ex + 26} ${ey + 89}, ${L.end.x} ${L.end.y}`; }
     const gapD = () => { const L = LAY[layout]; const c = tileCenters(); return [0, 1].map((i) => `M${c[i].x + L.tile / 2} ${c[i].y} L${c[i + 1].x - L.tile / 2} ${c[i + 1].y}`).join(' '); };
     function laneLocal(i) { const s = LAY[layout].tile, h = s / 2; return state.types[i] === 'bend' ? `M0 ${h} C ${s * 0.3} ${h}, ${s * 0.3} ${h - s * 0.22}, ${h} ${h - s * 0.18} C ${s * 0.7} ${h - s * 0.14}, ${s * 0.7} ${h}, ${s} ${h}` : `M0 ${h} L${s} ${h}`; }
     // the actual route through the solved tiles, in scene coordinates (a 180° tile is point-reflected through its centre)
@@ -328,7 +331,8 @@
       const L = LAY[layout]; const s = L.tile; const c = tileCenters(); let d = stubIn();
       for (let i = 0; i < 3; i++) {
         const ref = svg.querySelector(`.tile[data-i="${i}"] .lane-ref`); const len = ref.getTotalLength(); const flip = state.rot[i] % 360 === 180;
-        const pts = []; for (let k = 0; k <= 12; k++) { const p = ref.getPointAtLength(len * k / 12); const lx = flip ? s - p.x : p.x, ly = flip ? s - p.y : p.y; pts.push([L.tx + i * (s + L.gap) + lx, L.ty + ly]); }
+        const pts = []; for (let k = 0; k <= 32; k++) { const p = ref.getPointAtLength(len * k / 32); const lx = flip ? s - p.x : p.x, ly = flip ? s - p.y : p.y; pts.push([L.tx + i * (s + L.gap) + lx, L.ty + ly]); }
+        if (flip) pts.reverse();   // the reflection also reverses the lane: walk it from its left end to its right end, once
         d += ' ' + pts.map(([x, y]) => `L${x.toFixed(1)} ${y.toFixed(1)}`).join(' ');
         if (i < 2) d += ` L${c[i + 1].x - s / 2} ${c[i + 1].y}`;
       }
@@ -373,7 +377,7 @@
         ? `${Doodle.hills(W, 250, Hh)}${Doodle.pine(150, 300, 70, { ink: false, fill: '#dbe8f8' })}${Doodle.pine(840, 290, 86, { ink: false, fill: '#dbe8f8' })}${Doodle.pine(205, 310, 56, { ink: false, fill: '#e6eefa' })}
            ${Doodle.cloud(120, 90, 0.9)}${Doodle.cloud(560, 70, 0.7)}${Doodle.pine(34, 228, 84)}${Doodle.lamp(252, 428, 100, 'l')}${Doodle.snowman(150, 426, 0.9).replace('url(#d-snow) #fff', 'url(#l-snow) #fff')}${Doodle.snowBush(690, 395, 0.8)}${Doodle.snowBush(40, 420, 0.7)}`
         : `${Doodle.hills(W, 150, Hh)}${Doodle.pine(300, 158, 54, { ink: false, fill: '#dbe8f8' })}${Doodle.pine(345, 150, 74, { ink: false, fill: '#dbe8f8' })}${Doodle.pine(392, 162, 48, { ink: false, fill: '#e6eefa' })}
-           ${Doodle.cloud(60, 70, 0.8)}${Doodle.cloud(250, 52, 0.6)}${Doodle.pine(392, 232, 78)}${Doodle.lamp(44, 552, 100, 'l')}${Doodle.snowman(150, 548, 0.8).replace('url(#d-snow) #fff', 'url(#l-snow) #fff')}${Doodle.snowBush(250, 556, 0.8)}${Doodle.snowBush(96, 556, 0.6)}`;
+           ${Doodle.cloud(60, 70, 0.8)}${Doodle.cloud(250, 52, 0.6)}${Doodle.pine(392, 232, 78)}${Doodle.lamp(152, 552, 100, 'l')}${Doodle.snowman(58, 548, 0.8).replace('url(#d-snow) #fff', 'url(#l-snow) #fff')}${Doodle.snowBush(250, 556, 0.8)}${Doodle.snowBush(108, 556, 0.6)}`;
       const inner = `
         <defs>${Doodle.defs('l')}</defs>
         ${Doodle.sky(W, Hh, 'l', 24, 'dusk')}
@@ -415,7 +419,7 @@
     async function rotateTile(i) {
       if (state.done || state.crossing || turning) return;
       turning = true;
-      state.rot[i] = (state.rot[i] + 90) % 360; state.deg[i] += 90;
+      state.rot[i] = (state.rot[i] + 90) % 360; state.deg[i] += 90; TA.note('lane.turns');
       const from = state.deg[i] - 90, to = state.deg[i];
       Sound.play('pick'); ctx.announce(`piece ${i + 1} rotated`);
       flash(svg.querySelector(`.tile[data-i="${i}"] .rot-glyph`), 'pop-in', 300);
@@ -426,6 +430,83 @@
       if (linked > 0 && linked < 3) cats.pink.perk();
       if (linked === 3) { state.done = true; await crossing(); }
     }
+    // In the middle of the bend she stops, scoops up snow and lobs a snowball onto his head; she looks away, whistling,
+    // all innocence. He shakes it off, turns and throws one back; she ducks, and his snowball sails on and knocks the
+    // snowman's top hat off (it spins and lands back on, crooked). She giggles, he goes sheepish, and they walk on.
+    // The throws are overhand from the back paw, on arcs chosen to clear her head (ducked, for his) and stay on stage.
+    async function snowballs() {
+      const L = LAY[layout]; const k = L.catH / 100; const fx = svg.querySelector('.fx'); const blue = cats.blue, pink = cats.pink;
+      const R = 6.5 * k + 1;
+      const ball = () => { const g = svgEl('g', { class: 'snowball' }); g.innerHTML = `<circle r="${R.toFixed(1)}" fill="#fff" stroke="var(--ink)" stroke-width="2"/><path d="M${(-R * 0.45).toFixed(1)} ${(-R * 0.15).toFixed(1)} a${(R * 0.55).toFixed(1)} ${(R * 0.55).toFixed(1)} 0 0 1 ${(R * 0.55).toFixed(1)} ${(-R * 0.4).toFixed(1)}" fill="none" stroke="#cfe2f6" stroke-width="1.6" stroke-linecap="round"/>`; fx.appendChild(g); return g; };
+      const put = (el, p) => el.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`);
+      const qpt = (S, C, T, t) => ({ x: (1 - t) * (1 - t) * S.x + 2 * t * (1 - t) * C.x + t * t * T.x, y: (1 - t) * (1 - t) * S.y + 2 * t * (1 - t) * C.y + t * t * T.y });
+      const fly = (el, S, C, T, dur) => tween(dur, (t) => put(el, qpt(S, C, T, t)));
+      // a control point whose arc keeps out of `box` and stays below the top of the stage
+      const arc = (S, T, box) => {
+        const top = Math.min(S.y, T.y);
+        for (const lift of [70, 110, 150, 200, 250, 300, 360]) for (const f of [0.45, 0.35, 0.55, 0.25, 0.65, 0.75, 0.85]) {
+          const C = { x: S.x + (T.x - S.x) * f, y: top - lift }; let ok = true;
+          for (let i = 1; i < 60 && ok; i++) { const p = qpt(S, C, T, i / 60); if (p.y < R + 6 || (box && p.x > box.x0 && p.x < box.x1 && p.y > box.y0 && p.y < box.y1)) ok = false; }
+          if (ok) return C;
+        }
+        return { x: (S.x + T.x) / 2, y: Math.max(R + 40, top - 120) };
+      };
+      const poof = (x, y, n = 9, spread = 1) => {
+        const g = svgEl('g'); fx.appendChild(g);
+        const bits = Array.from({ length: n }, (_, i) => { const a = (i / n) * Math.PI * 2 + Math.random() * 0.5; const c = svgEl('circle', { r: (1.8 + Math.random() * 2.2) * (k + 0.2), fill: '#fff', stroke: '#cfe2f6', 'stroke-width': 1.2 }); g.appendChild(c); return { c, vx: Math.cos(a) * (26 + Math.random() * 22) * spread, vy: Math.sin(a) * (20 + Math.random() * 18) * spread - 14 }; });
+        tween(480, (t) => bits.forEach((b) => { b.c.setAttribute('cx', (x + b.vx * t).toFixed(1)); b.c.setAttribute('cy', (y + b.vy * t + 40 * t * t).toFixed(1)); b.c.setAttribute('opacity', String(1 - t)); })).then(() => g.remove());
+      };
+      const headTop = (c) => ({ x: c.s.x + 4 * k * c.s.flip * c.mirror, y: c.s.y - 90 * k });
+      const hatEl = svg.querySelector('.snowman-hat'), smile = svg.querySelector('.snowman-mouth'), oh = svg.querySelector('.snowman-o');
+      const hatAt = () => { const b = hatEl.getBBox(); const m = hatEl.getCTM(), inv = svg.getCTM().inverse(); const q = new DOMPoint(b.x + b.width / 2, b.y + b.height * 0.55).matrixTransform(m).matrixTransform(inv); return { x: q.x, y: q.y }; };
+
+      // 1. she stops, scoops up some snow and lobs it at the back of his head
+      pink.setExpression('joy'); Sound.play('scoop');
+      await pink.crouch(0.16, 220);
+      pink.set({ raiseR: 1 }); const b1 = ball(); put(b1, pink.pawPoint('r'));
+      await tween(200, (t) => { const e = ease.out(t); pink.set({ sy: 0.84 + 0.16 * e, sx: 1.1 - 0.1 * e, lean: -9 * e }); put(b1, pink.pawPoint('r')); });   // up, and wind up (lean back)
+      const S1 = pink.pawPoint('r'), T1 = headTop(blue);
+      const C1 = arc(S1, T1, { x0: pink.s.x - 34 * k, x1: pink.s.x + 34 * k, y0: pink.s.y - 112 * k, y1: pink.s.y - 60 * k });
+      Sound.play('toss'); pink.leanTo(7, 140); setTimeout(() => pink.set({ raiseR: 0 }), 120);
+      await fly(b1, S1, C1, T1, 440);
+      b1.remove(); poof(T1.x, T1.y); Sound.play('snowhit');
+      blue.set({ snowcap: 1 }); blue.setExpression('surprised'); blue.earFlick(); await tween(160, (t) => blue.set({ sy: 1 - 0.08 * Math.sin(Math.PI * t) }));
+      pink.leanTo(0, 200);
+      await wait(420);
+      // 2. who, me? she looks away, whistling. He turns his head, slowly.
+      pink.setExpression('proud'); pink.lookUp(0.9, 220); pink.tiltTo(-7, 240); Sound.play('whistle');
+      blue.setExpression('skeptical'); await blue.lookAt(-1, 380);
+      await wait(520);
+      // 3. he shakes the snow off, turns round, scoops one up: revenge
+      blue.setExpression('determined');
+      { const h = headTop(blue); blue.set({ snowcap: 0 }); poof(h.x, h.y - 2, 6, 0.7); }
+      await blue.shakeHead(2, 420);
+      blue.faceDir(-1); Sound.play('scoop'); await blue.crouch(0.16, 200);
+      blue.set({ raiseL: 1 }); const b2 = ball(); put(b2, blue.pawPoint('l'));
+      pink.gazeReset(160); pink.tiltTo(0, 160); pink.lookAt(1, 160); pink.setExpression('surprised');   // she sees it coming
+      await tween(220, (t) => { const e = ease.out(t); blue.set({ sy: 0.84 + 0.16 * e, sx: 1.1 - 0.1 * e, lean: 10 * e }); put(b2, blue.pawPoint('l')); });
+      await wait(120);
+      // 4. he throws, she ducks; it sails over her and knocks the snowman's top hat off
+      const S2 = blue.pawPoint('l'), T2 = hatAt();
+      const C2 = arc(S2, T2, { x0: pink.s.x - 50 * k, x1: pink.s.x + 50 * k, y0: pink.s.y - 76 * k, y1: pink.s.y + 4 });
+      Sound.play('toss'); blue.leanTo(-8, 150); setTimeout(() => blue.set({ raiseL: 0 }), 130);
+      pink.setExpression('joy'); tween(130, (t) => pink.set({ sy: 1 - 0.28 * ease.out(t), sx: 1 + 0.12 * ease.out(t) }));   // duck!
+      const dist = Math.hypot(T2.x - S2.x, T2.y - S2.y);
+      await fly(b2, S2, C2, T2, Math.max(620, Math.min(1100, dist * 2.4)));
+      b2.remove(); poof(T2.x, T2.y, 8, 0.8); Sound.play('snowhit');
+      if (smile && oh) { smile.setAttribute('opacity', '0'); oh.setAttribute('opacity', '1'); }
+      Sound.play('pop');
+      await tween(640, (t) => { const up = 46 * Math.sin(Math.PI * t), a = -8 + 380 * ease.out(t); hatEl.setAttribute('transform', `translate(${(6 * Math.sin(Math.PI * t)).toFixed(1)} ${(-up).toFixed(1)}) rotate(${a.toFixed(1)} 0 -63)`); });
+      hatEl.setAttribute('transform', 'rotate(18 0 -63)'); Sound.play('boing');
+      setTimeout(() => { if (smile && oh) { smile.setAttribute('opacity', '1'); oh.setAttribute('opacity', '0'); } }, 700);
+      // 5. she pops back up giggling; he goes sheepish
+      blue.leanTo(0, 200); blue.setExpression('sheepish'); blue.sweatDrop(1500);
+      await tween(200, (t) => pink.set({ sy: 0.72 + 0.28 * ease.out(t), sx: 1.12 - 0.12 * ease.out(t) }));
+      Sound.play('hmm'); await pink.bounce(8, 300); await pink.bounce(6, 260);
+      await wait(260);
+      blue.faceDir(1); blue.lookAt(1, 200); blue.setExpression('shy'); pink.setExpression('affectionate'); pink.lookAt(1, 200);
+      await wait(200);
+    }
     async function crossing() {
       state.crossing = true;
       svg.querySelectorAll('.tile').forEach((t) => t.classList.add('solved'));
@@ -435,26 +516,42 @@
       await Promise.all([cats.blue.lookAt(1, 240), cats.pink.lookAt(1, 240)]);
       cats.blue.setExpression('excited'); await cats.blue.perk(); await cats.pink.nod();
       cats.pink.faceDir(1);
-      const trail = svg.querySelector('.trail'); let lastPaw = 0; const len = path.getTotalLength();
+      const trail = svg.querySelector('.trail'); const len = path.getTotalLength();
+      // the pieces' own pawprints step aside: the real footsteps are laid as the cats walk
+      svg.querySelectorAll('.tile-paws').forEach((tp) => { tp.style.transition = 'opacity 300ms ease'; tp.style.opacity = '0'; });
       Sound.play('glide');
-      const stamp = (d, p) => { if (d - lastPaw > 34) { lastPaw = d; trail.insertAdjacentHTML('beforeend', Doodle.paw(p.x + (Math.random() - 0.5) * 8, p.y + 4, L.tile * 0.09, 'class="paw-fx"')); } };
-      // an easy stroll, single file: blue leads, pink waits a beat and follows a body-length behind on the same line.
-      // Half way (on the bend) he nearly slips, scrambles upright and checks whether anyone saw. She saw.
-      const follow = L.catH * 0.95; const SLIP = 0.44; const dur1 = 3500, dur2 = 4400;   // ~150 units/s: a stroll, not a trot
+      // footsteps: one every so often along the route, alternating left and right of it, toes pointing the way they walk
+      const stepGap = L.tile * 0.21, sideOff = L.tile * 0.055, pawSize = L.tile * 0.105; let nextPaw = stepGap * 0.6, side = 1;
+      const stamp = (d) => {
+        while (d >= nextPaw && nextPaw <= len) {
+          const p = path.getPointAtLength(nextPaw), q = path.getPointAtLength(Math.min(len, nextPaw + 2));
+          const ang = Math.atan2(q.y - p.y, q.x - p.x); const x = p.x - Math.sin(ang) * sideOff * side, y = p.y + Math.cos(ang) * sideOff * side;
+          trail.insertAdjacentHTML('beforeend', `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(ang * 180 / Math.PI + 90).toFixed(0)})">${Doodle.paw(0, 0, pawSize, 'class="paw-fx"')}</g>`);
+          side = -side; nextPaw += stepGap;
+        }
+      };
+      // an easy stroll, single file, at a steady pace (so the durations follow the route's real length): blue leads,
+      // pink waits a beat and follows a body-length behind on the same line. In the middle of the bend: snowballs.
+      const follow = L.catH * 0.95, speed = L.catH * 1.4;   // scene units per second: about a body-height and a half
+      const bendX = tileCenters()[1].x; let lo = 0, hi = len;   // where along the route the bend's middle is
+      for (let k = 0; k < 28; k++) { const m = (lo + hi) / 2; if (path.getPointAtLength(m).x < bendX) lo = m; else hi = m; }
+      const SLIP = lo / len, dur1 = (1000 * lo) / speed;
       const walk = (from, to, dur) => Promise.all([
         cats.blue.walkAlong(path, from, to, dur),
         cats.pink.walkAlong(path, from, to, dur, { trail: follow }),
-        tween(dur, (t) => { const e = ease.walk(t); const d = len * (from + (to - from) * e); stamp(d, path.getPointAtLength(d)); }),
+        tween(dur, (t) => { const e = ease.walk(t); stamp(len * (from + (to - from) * e)); }),
       ]);
       await walk(0, SLIP, dur1);
-      await cats.blue.nearSlip();
-      await wait(160);
-      await cats.blue.lookAt(-1, 200); await wait(240);                       // did anyone see that?
-      cats.pink.setExpression('joy'); await cats.pink.tiltTo(8, 220); Sound.play('hmm');   // she saw.
-      await wait(420);
-      cats.blue.setExpression('sheepish'); await cats.blue.lookAt(0, 200); await wait(300);
-      cats.pink.setExpression('pleased'); await cats.pink.tiltTo(0, 200); cats.blue.setExpression('shy');
-      await walk(SLIP, 1, dur2);
+      // she stops; he strolls on a few more steps (so the two have room for what comes next)
+      const ahead = Math.min(0.62 * L.catH, len * 0.08), SLIP2 = SLIP + ahead / len, durA = (1000 * ahead * 1.25) / speed;
+      await Promise.all([cats.blue.walkAlong(path, SLIP, SLIP2, durA), tween(durA, (t) => stamp(len * (SLIP + (SLIP2 - SLIP) * ease.walk(t))))]);
+      await snowballs();
+      const durB = (1000 * len * (1 - SLIP2)) / speed;
+      await Promise.all([
+        cats.blue.walkAlong(path, SLIP2, 1, durB),
+        cats.pink.walkAlong(path, SLIP, 1, durB, { trail: follow }),
+        tween(durB, (t) => stamp(len * (SLIP2 + (1 - SLIP2) * ease.walk(t)))),
+      ]);
       path.remove();
       // arrival: they settle side by side in front of the booth, then a little hop and a heart between them
       const b0 = { x: cats.blue.s.x, y: cats.blue.s.y }, p0 = { x: cats.pink.s.x, y: cats.pink.s.y };
@@ -522,12 +619,22 @@
     const LAY = {
       wide: withHouse({ vb: '0 0 900 610', W: 900, H: 610, k: 0.85, ground: 400, groundX: [20, 900], house: { x: 640, s: 0.84 },
         ghosts: { stool: { x: 376 }, crate: { x: 450 }, box: { x: 532 } }, cats: { blue: { cx: 112 }, pink: { cx: 230 } }, catH: 100,
-        tray: { x: 20, y: 436, w: 580, h: 162, slots: { stool: 120, crate: 300, box: 480 } }, label: { x: 300, y: 80, ax: [470, 90, 600, 90, 720, 150] } }),
+        tray: { x: 20, y: 436, w: 580, h: 162, slots: { stool: 120, crate: 300, box: 480 } }, label: { x: 300, y: 80 } }),
       tall: withHouse({ vb: '0 0 420 590', W: 420, H: 590, k: 0.6, ground: 360, groundX: [8, 420], house: { x: 266, s: 0.6 },
         ghosts: { stool: { x: 132 }, crate: { x: 184 }, box: { x: 240 } }, cats: { blue: { cx: 40 }, pink: { cx: 92 } }, catH: 64,
-        tray: { x: 8, y: 400, w: 404, h: 140, slots: { stool: 68, crate: 205, box: 340 } }, label: { x: 150, y: 44, ax: [205, 50, 300, 66, 344, 178] } }),
+        tray: { x: 8, y: 400, w: 404, h: 140, slots: { stool: 68, crate: 205, box: 340 } }, label: { x: 150, y: 44 } }),
     };
     const objTop = (id) => LAY[layout].ground - OBJ[id].h * LAY[layout].k;
+    // the label's dashed arrow: from just after the words, flat at first, then curving down onto the balcony door's
+    // upper left (where the envelope waits); the head follows the curve's direction at its end
+    function labelArrow(L, wide) {
+      const fs = wide ? 19 : 15; const tw = C.stairs.label.length * fs * 0.5;
+      const a0 = { x: L.label.x + tw / 2 + 10, y: L.label.y - fs * 0.32 };
+      const a2 = { x: L.door.x - 7, y: L.door.y + L.door.h * 0.32 };
+      const a1 = { x: a2.x - (a2.x - a0.x) * 0.25, y: a0.y - 10 };
+      const ang = (Math.atan2(a2.y - a1.y, a2.x - a1.x) * 180) / Math.PI;
+      return `${Doodle.arrowCurve(`M${a0.x.toFixed(1)} ${a0.y.toFixed(1)} Q ${a1.x.toFixed(1)} ${a1.y.toFixed(1)} ${a2.x.toFixed(1)} ${a2.y.toFixed(1)}`, 2.6)}${Doodle.arrowHead(a2.x, a2.y, ang, 8)}`;
+    }
     const ghostPos = (id) => ({ x: LAY[layout].ghosts[id].x, y: objTop(id) });
     const trayPos = (id) => { const L = LAY[layout]; return { x: L.tray.slots[id] - (OBJ[id].w * L.k) / 2, y: L.tray.y + L.tray.h - 12 - OBJ[id].h * L.k }; };
     function objMarkup(id) {
@@ -545,7 +652,7 @@
       const landX = L.plat.x + L.plat.w * 0.42;
       const climb = `M${L.cats.pink.cx} ${g - 10} Q ${stepPts[0].x - 30} ${stepPts[0].y - 30} ${stepPts[0].x} ${stepPts[0].y - 8} Q ${stepPts[1].x - 20} ${stepPts[1].y - 40} ${stepPts[1].x} ${stepPts[1].y - 8} Q ${stepPts[2].x - 20} ${stepPts[2].y - 40} ${stepPts[2].x} ${stepPts[2].y - 8} Q ${(stepPts[2].x + landX) / 2} ${L.plat.y - 34} ${landX} ${L.plat.y - 8}`;
       const scenery = wide
-        ? `${Doodle.hills(L.W, g - 120, L.H)}${Doodle.pine(70, g - 96, 90, { ink: false, fill: '#dbe8f8' })}${Doodle.pine(130, g - 104, 70, { ink: false, fill: '#e6eefa' })}${Doodle.pine(560, g - 92, 76, { ink: false, fill: '#dbe8f8' })}${Doodle.cloud(90, 110, 0.8)}${Doodle.cloud(420, 70, 0.6)}${Doodle.pine(40, g, 96)}`
+        ? `${Doodle.hills(L.W, g - 120, L.H)}${Doodle.pine(70, g - 96, 90, { ink: false, fill: '#dbe8f8' })}${Doodle.pine(130, g - 104, 70, { ink: false, fill: '#e6eefa' })}${Doodle.pine(560, g - 92, 76, { ink: false, fill: '#dbe8f8' })}${Doodle.cloud(90, 110, 0.8)}${Doodle.cloud(560, 34, 0.6)}${Doodle.pine(40, g, 96)}`
         : `${Doodle.hills(L.W, g - 90, L.H)}${Doodle.pine(26, g - 76, 56, { ink: false, fill: '#dbe8f8' })}${Doodle.pine(62, g - 80, 70, { ink: false, fill: '#e6eefa' })}${Doodle.pine(250, g - 70, 48, { ink: false, fill: '#dbe8f8' })}${Doodle.cloud(40, 110, 0.7)}${Doodle.cloud(240, 90, 0.5)}`;
       const inner = `
         <defs>${Doodle.defs('s')}</defs>
@@ -560,7 +667,7 @@
         <g class="door-envelope">${Doodle.envelope(L.door.x + L.door.w * 0.22, L.door.y + L.door.h * 0.3, L.door.w * 0.56, L.door.w * 0.4, 2.4)}</g>
         <g class="goal-label">
           <text class="ui-text" x="${L.label.x}" y="${L.label.y}" text-anchor="middle" font-size="${wide ? 19 : 15}" fill="var(--ink)">${C.stairs.label}</text>
-          ${Doodle.arrowCurve(`M${L.label.ax[0]} ${L.label.ax[1]} Q ${L.label.ax[2]} ${L.label.ax[3]} ${L.label.ax[4]} ${L.label.ax[5]}`, 2.6)}${Doodle.arrowHead(L.label.ax[4], L.label.ax[5], 50, 8)}
+          ${labelArrow(L, wide)}
         </g>
         <path d="${climb}" fill="none" stroke="var(--heart)" stroke-width="2.2" stroke-dasharray="4 8" stroke-linecap="round" opacity=".55"/>
         <g class="ghosts">${IDS.map((id) => { const p = ghostPos(id); const o = OBJ[id];
@@ -652,7 +759,7 @@
       svg.querySelector('.objects').appendChild(d.el);
       if (near === d.id) { await place(d.id, { x, y }); }
       else {
-        if (near) { flash(svg.querySelector(`.ghost[data-id="${near}"]`), 'shake', 420); Sound.play('nope'); ctx.announce(`that outline is for ${OBJ[near].name}`); cats.blue.setExpression('curious'); setTimeout(() => cats.blue.setExpression('shy'), 1200); }
+        if (near) { TA.note('stairs.wrong'); flash(svg.querySelector(`.ghost[data-id="${near}"]`), 'shake', 420); Sound.play('nope'); ctx.announce(`that outline is for ${OBJ[near].name}`); cats.blue.setExpression('curious'); setTimeout(() => cats.blue.setExpression('shy'), 1200); }
         const home = trayPos(d.id);
         await tween(380, (t) => { const e2 = ease.inOut(t); setT(d.el, x + (home.x - x) * e2, y + (home.y - y) * e2 - 16 * 4 * t * (1 - t)); });
         setT(d.el, home.x, home.y); d.el.classList.add('in-tray');
@@ -664,7 +771,7 @@
       if (state.done || state.placed[gid]) return;
       clearTimeout(demoTimer);
       if (!state.selected) { ctx.announce(`first tap ${OBJ[gid].name} in the tray`); flash(svg.querySelector(`.obj[data-id="${gid}"]`), 'wiggle', 600); return; }
-      if (state.selected !== gid) { flash(svg.querySelector(`.ghost[data-id="${gid}"]`), 'shake', 420); Sound.play('nope'); ctx.announce(`that outline is for ${OBJ[gid].name}. try step ${OBJ[state.selected].n}.`); return; }
+      if (state.selected !== gid) { TA.note('stairs.wrong'); flash(svg.querySelector(`.ghost[data-id="${gid}"]`), 'shake', 420); Sound.play('nope'); ctx.announce(`that outline is for ${OBJ[gid].name}. try step ${OBJ[state.selected].n}.`); return; }
       const id = state.selected; select(null);
       const o = svg.querySelector(`.obj[data-id="${id}"]`); const m = /translate\(([-\d.]+) ([-\d.]+)\)/.exec(o.getAttribute('transform'));
       place(id, { x: Number(m[1]), y: Number(m[2]) });

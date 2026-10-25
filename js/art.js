@@ -287,10 +287,17 @@
         <path d="M-15 -39 q15 7 30 0 l-2 -5 q-13 5 -26 0 z" fill="var(--pink)" stroke="${INK}" stroke-width="2.2" stroke-linejoin="round"/>
         <path d="M9 -39 l4 10" stroke="var(--pink)" stroke-width="5" stroke-linecap="round"/><path d="M9 -39 l4 10" stroke="${INK}" stroke-width="1.6" stroke-linecap="round" opacity=".35"/>
         <circle cx="-5" cy="-53" r="1.8" fill="${INK}"/><circle cx="5" cy="-53" r="1.8" fill="${INK}"/>
-        <path d="M-3.5 -48.5 q1.75 2.5 3.5 0 q1.75 2.5 3.5 0" fill="none" stroke="${INK}" stroke-width="1.6" stroke-linecap="round"/>
+        <path class="snowman-mouth" d="M-3.5 -48.5 q1.75 2.5 3.5 0 q1.75 2.5 3.5 0" fill="none" stroke="${INK}" stroke-width="1.6" stroke-linecap="round"/>
+        <circle class="snowman-o" cx="0" cy="-46.8" r="2.3" fill="none" stroke="${INK}" stroke-width="1.6" opacity="0"/>
         <path d="M-21 -26 l-12 -8 M-27 -31 l-3 4" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>
         <path d="M21 -26 l12 -8 M27 -31 l3 4" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>
         <circle cx="0" cy="-24" r="1.8" fill="${INK}"/><circle cx="0" cy="-15" r="1.8" fill="${INK}"/>
+        <g class="snowman-hat" transform="rotate(-8 0 -63)">
+          <path d="M-10.5 -64 L-9.5 -86 q9.5 -2.5 19 0 L10.5 -64 z" fill="#4a4458" stroke="${INK}" stroke-width="2.2" stroke-linejoin="round"/>
+          <rect x="-10.6" y="-70.5" width="21.2" height="4.5" fill="var(--heart)" stroke="${INK}" stroke-width="1.4"/>
+          <path d="M-6.5 -82 v10" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity=".45"/>
+          <rect x="-17" y="-66" width="34" height="5" rx="2.5" fill="#4a4458" stroke="${INK}" stroke-width="2.2"/>
+        </g>
       </g>`;
     },
     // ---- a thought-bubble style cloud, soft, for distance

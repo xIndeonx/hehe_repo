@@ -105,6 +105,22 @@
         tumble: () => { this.noise(t, 0.5, 700, 300, 0.02, 0.7); this.noise(t + 0.55, 0.5, 700, 300, 0.015, 0.7); },
         sting: () => { this.tone(110, t, 1.4, 'sawtooth', 0.03); [220, 277, 330].forEach((f) => { this.tone(f, t + 0.2, 0.5, 'square', 0.022); this.tone(f * 1.19, t + 0.75, 0.7, 'square', 0.025); }); this.noise(t + 0.7, 0.8, 300, 1200, 0.012, 0.5); },
         clank: () => { this.tone(880, t, 0.05, 'square', 0.05, 660); this.tone(1320, t + 0.02, 0.18, 'triangle', 0.04); this.noise(t, 0.08, 3000, 1500, 0.03, 1); },
+        engine: () => { this.tone(64, t, 1.2, 'triangle', 0.05, 58, 7); this.noise(t, 1.2, 320, 220, 0.012, 0.7); },
+        brake: () => { this.noise(t, 0.42, 3400, 1500, 0.03, 0.6); },
+        ding: () => { this.tone(1318, t, 0.24, 'sine', 0.05); this.tone(1046, t + 0.22, 0.36, 'sine', 0.05); },
+        swish: () => { this.noise(t, 0.22, 900, 2600, 0.025, 0.8); this.noise(t + 0.3, 0.22, 900, 2600, 0.025, 0.8); },
+        crash: () => { this.noise(t, 0.3, 3400, 600, 0.09, 0.8); [1760, 2350, 1980, 2640].forEach((f, i) => this.tone(f, t + 0.02 + i * 0.045, 0.06, 'triangle', 0.03)); },
+        creak: () => { this.tone(170, t, 0.5, 'triangle', 0.035, 250, 16); },
+        sigh: () => { this.noise(t, 0.7, 1000, 320, 0.03, 0.6); this.tone(392, t, 0.6, 'sine', 0.025, 290); },
+        scoop: () => { this.noise(t, 0.12, 1400, 700, 0.03, 0.9); this.noise(t + 0.08, 0.1, 1100, 500, 0.025, 0.9); },
+        toss: () => { this.noise(t, 0.16, 2200, 900, 0.025, 0.8); },
+        snowhit: () => { this.noise(t, 0.16, 900, 260, 0.07, 0.8); this.tone(180, t, 0.08, 'sine', 0.04, 110); },
+        whistle: () => { this.tone(1180, t, 0.13, 'sine', 0.03, 1520); this.tone(1520, t + 0.16, 0.2, 'sine', 0.03, 1100); },
+        boing: () => { this.tone(240, t, 0.32, 'sine', 0.06, 560, 9); },
+        whoosh: () => { this.noise(t, 0.32, 2600, 380, 0.035, 0.7); },
+        thunk: () => { this.tone(96, t, 0.16, 'triangle', 0.16, 52); this.noise(t, 0.1, 520, 140, 0.09, 1.1); this.tone(1900, t + 0.005, 0.03, 'square', 0.015); },
+        coo: () => { this.tone(330, t, 0.16, 'sine', 0.05, 296); this.tone(300, t + 0.2, 0.24, 'sine', 0.05, 262); },
+        flap: () => { [0, 0.09, 0.18, 0.27].forEach((d) => this.noise(t + d, 0.05, 1500, 700, 0.025, 0.9)); },
         kiss: () => { this.tone(1046, t, 0.07, 'sine', 0.07, 1568); this.tone(1318, t + 0.06, 0.12, 'sine', 0.06, 880); this.noise(t + 0.02, 0.05, 2400, 900, 0.015, 1); },
         sparkle: () => { this.tone(2093, t, 0.1, 'sine', 0.04); this.tone(2637, t + 0.07, 0.14, 'sine', 0.035); this.tone(3136, t + 0.15, 0.22, 'sine', 0.03); },
         meowShy: () => { this.tone(700, t, 0.28, 'triangle', 0.04, 480, 10); this.tone(900, t + 0.08, 0.2, 'sine', 0.025, 560); },
@@ -254,6 +270,9 @@
   // what the header shows for a scene: the chapter number, or for the interlude the chapters done so far
   const chapterNo = (name) => { const i = CHAPTERS.indexOf(name); if (i >= 0) return i + 1; if (name === 'balcony') return 2; return 0; };
   const TA = window.TA = { scenes: {}, registerScene(name, factory) { this.scenes[name] = factory; }, helpers: { svgEl, tween, wait, ease, spawnHearts, spawnStar, Doodle, flash, REDUCED }, Sound, store };
+  // telemetry (js/notify.js): every call is optional and can never get in the way of the story
+  const tm = (fn, ...a) => { try { if (TA.tm && TA.tm[fn]) TA.tm[fn](...a); } catch (e) { /* ignore */ } };
+  TA.note = (key) => tm('count', key);
   let current = null;        // chapter name
   let instance = null;       // active scene instance
   let completed = new Set();
@@ -326,7 +345,7 @@
         if (ms) el._t = setTimeout(() => el.classList.remove('show'), ms);
       },
       complete() {
-        completed.add(name);
+        completed.add(name); tm('done', name);
         const ci = CHAPTERS.indexOf(name); if (ci >= 0) markHeart(ci);
         const ctrl = section.querySelector('.scene-controls'); if (ctrl) ctrl.hidden = true;
         const help = section.querySelector('.scene-helper'); if (help) help.hidden = true;   // the how-to is done with; its line goes to the success panel
@@ -344,7 +363,7 @@
   async function go(name) {
     if (current === name) return;
     const prev = current ? sectionOf(current) : null;
-    current = name;
+    current = name; tm('enter', name);
     if (instance && instance.unmount) instance.unmount();
     instance = null;
     if (prev) { prev.classList.add('leaving'); await wait(260); prev.hidden = true; prev.classList.remove('leaving'); const oldArt = prev.querySelector('.scene-art'); if (oldArt) oldArt.innerHTML = ''; }
@@ -371,13 +390,13 @@
         const a = btn.dataset.action;
         Sound.play('tap');
         if (a === 'next') { const idx = ORDER.indexOf(current); go(ORDER[idx + 1]); }
-        else if (a === 'hint' && instance && instance.hint) instance.hint();
-        else if (a === 'skip' && instance && instance.skip) instance.skip();
+        else if (a === 'hint' && instance && instance.hint) { tm('count', `${current}.hint`); instance.hint(); }
+        else if (a === 'skip' && instance && instance.skip) { tm('count', `${current}.skip`); instance.skip(); }
       });
     });
   });
-  $('btnStart').addEventListener('click', () => { Sound.play('tap'); go('map'); });
-  $('btnReplay').addEventListener('click', () => { store.del(K_PROGRESS); completed = new Set(); Sound.play('tap'); go('prologue'); });
+  $('btnStart').addEventListener('click', () => { Sound.play('tap'); tm('start'); go('map'); });
+  $('btnReplay').addEventListener('click', () => { tm('count', 'replays'); store.del(K_PROGRESS); completed = new Set(); officeReady = false; Sound.play('tap'); go('prologue'); });
 
   // re-render the active scene when the layout flips (portrait phone vs wide)
   let lastLayout = null;
@@ -394,15 +413,18 @@
   function setupEpilogue() { $('secretWord').textContent = SECRET; }
 
   // ---------------------------------------------------------- the paperwork: the application that doubles as her reply
-  // The form is the official date application: her decision, the date and her remarks are its fields; "stamp it"
-  // slams APPROVED / PENDING / DECLINED onto it, the pigeon leaves with the letter, and the letter can be copied.
-  let officeReady = false;
+  // The form is the official date application: her decision and the date are its fields, and it starts blank. Once both
+  // are chosen the "stamp" button arms; pressing it plays the stamping (office.js), the imprint lands at the impact, the
+  // pigeon collects the reply from the box, and the reply (overly formal, as is proper) appears below to be copied.
+  const STAMP_ICON = '<svg class="stamp-ico" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="4.6" rx="4.6" ry="3.1" fill="currentColor"/><rect x="10" y="6.4" width="4" height="5" rx="1.2" fill="currentColor"/><rect x="4.5" y="11.2" width="15" height="5.6" rx="1.8" fill="currentColor"/><rect x="3" y="19" width="18" height="2.2" rx="1.1" fill="currentColor" opacity=".55"/></svg>';
+  let officeReady = false, officeLetter = () => '', officeWired = false;
   function setupOffice() {
     if (officeReady) return;
     officeReady = true;
     const O = C.office, E = C.epilogue, D = O.doc;
     const kindOf = (answer) => ['yes', 'check', 'no'][E.answers.indexOf(answer)] || 'yes';
-    const state = { answer: E.answers[0], date: E.dateChoices[0], note: '', stamped: null };
+    const state = { answer: null, date: null, stamped: null, busy: false };
+    const ready = () => !!(state.answer && state.date);
     const doc = $('paperwork');
     const rows = D.rows.map(([k, v]) => `<div class="doc-row"><dt>${k}</dt><dd>${v.replace('{word}', `<strong>${SECRET}</strong>`)}</dd></div>`).join('');
     doc.innerHTML = `<div class="doc-inner">
@@ -413,23 +435,28 @@
         <div class="doc-fields">
           <fieldset class="choice-group"><legend>${O.decision}</legend><div class="chips" id="answerChips" role="radiogroup" aria-label="${O.decision}"></div></fieldset>
           <fieldset class="choice-group"><legend>${O.date}</legend><div class="chips" id="dateChips" role="radiogroup" aria-label="${O.date}"></div></fieldset>
-          <label class="note-label" for="noteField">${O.remarks}</label>
-          <textarea id="noteField" class="note" rows="2" maxlength="240" placeholder="${O.remarksPlaceholder}"></textarea>
-          <div class="doc-actions"><button id="btnStamp" class="btn btn-primary" type="button">${O.stampBtn}</button></div>
+          <div class="doc-actions">
+            <button id="btnStamp" class="btn btn-primary btn-stamp is-waiting" type="button" aria-disabled="true" aria-describedby="stampWait">${STAMP_ICON}<span class="btn-stamp-label">${O.stampBtn}</span></button>
+            <p class="stamp-wait" id="stampWait">${O.stampWait}</p>
+          </div>
         </div>
-        <p class="doc-foot">${D.footnote}</p>
-        <div class="doc-stamp" id="docStamp" aria-hidden="true" hidden><span></span></div>
+        <div class="doc-bottom">
+          <p class="doc-foot">${D.footnote}</p>
+          <div class="doc-seal" id="docSeal"><span class="doc-seal-label">${O.sealLabel}</span><div class="doc-stamp" id="docStamp" aria-hidden="true" hidden><span></span></div></div>
+        </div>
       </div>`;
+    $('dispatch').hidden = true;
     function chipGroup(host, options, key, pink) {
       host.innerHTML = '';
       options.forEach((opt) => {
         const b = document.createElement('button');
         b.type = 'button'; b.className = 'chip' + (pink ? ' chip-pink' : ''); b.textContent = opt;
-        b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(state[key] === opt));
+        b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', 'false');
         b.addEventListener('click', async () => {
-          // the two "no" decisions: the clerk drops onto the button and guards it (he gives in on the third try)
+          if (state.busy) return;   // the stamp is coming down: hands off the form
+          // the two "no" decisions: the clerk drops onto the button and guards it (he never gives in)
           if (key === 'answer' && options.indexOf(opt) > 0 && TA.decisionGag) {
-            flash(b, 'shake', 400);
+            flash(b, 'shake', 400); tm('count', 'office.bouncer');
             const allowed = await TA.decisionGag(b); if (!allowed) return;
           }
           state[key] = opt; host.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-checked', String(c === b))); Sound.play('tap'); update();
@@ -440,32 +467,49 @@
     }
     chipGroup($('answerChips'), E.answers, 'answer', true);
     chipGroup($('dateChips'), E.dateChoices, 'date', false);
-    $('noteField').addEventListener('input', (e) => { state.note = e.target.value.trim(); update(); });
-    function letter() { return E.letter(state.answer, state.date, state.note, SECRET); }
-    function update() {
-      $('letterPreview').textContent = letter(); $('copyStatus').textContent = ''; $('copyFallback').hidden = true;
-      // a stamped form follows a changed decision at once (the status line and the stamp)
-      if (state.stamped && state.stamped !== kindOf(state.answer)) applyStamp(true);
+    const letter = () => (ready() ? O.letter(kindOf(state.answer), E.dateChoices.indexOf(state.date), SECRET) : '');
+    officeLetter = letter;
+    function arm() {
+      const b = $('btnStamp'); const was = !b.classList.contains('is-waiting'); const ok = ready();
+      b.classList.toggle('is-waiting', !ok); b.setAttribute('aria-disabled', String(!ok)); $('stampWait').hidden = ok;
+      if (ok && !was) { flash(b, 'just-ready', 650); Sound.play('pop'); }
     }
-    function applyStamp(quiet = false) {
-      const kind = kindOf(state.answer); state.stamped = kind;
-      const st = $('docStamp'); st.hidden = false; st.querySelector('span').textContent = O.stamps[kind]; st.className = `doc-stamp stamp-${kind}`;
+    function update() { $('letterPreview').textContent = letter(); $('copyStatus').textContent = ''; $('copyFallback').hidden = true; arm(); }
+    // the moment of impact: the imprint is on the paper, the status line follows
+    function applyStamp(kind) {
+      state.stamped = kind;
+      const st = $('docStamp'); st.querySelector('span').textContent = O.stamps[kind];
+      st.className = `doc-stamp stamp-${kind}`; st.hidden = false; void st.offsetWidth; st.classList.add('inked');
       $('docStatus').textContent = D.status[kind];
-      doc.classList.remove('stamped'); void doc.offsetWidth; doc.classList.add('stamped');
-      if (!quiet) Sound.play('rustle'); setTimeout(() => Sound.play('stamp'), quiet ? 60 : 420);
-      $('btnStamp').textContent = O.restampBtn;
+      flash(doc.querySelector('.doc-inner'), 'thump', 320);
+      $('btnStamp').querySelector('.btn-stamp-label').textContent = O.restampBtn;
     }
-    $('btnStamp').addEventListener('click', () => {
-      const first = !state.stamped; applyStamp();
-      const kind = state.stamped;
-      const d = $('dispatch'); if (d.hidden) { d.hidden = false; d.classList.add('arrive'); }
-      $('copyStatus').textContent = '';
-      if (TA.officeStamped) TA.officeStamped(kind, first);
-      setTimeout(() => d.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 900);
+    $('btnStamp').addEventListener('click', async () => {
+      const b = $('btnStamp');
+      if (state.busy) return;
+      if (!ready()) { flash(b, 'shake', 400); flash($('stampWait'), 'nudge', 520); Sound.play('nope'); $('srLive').textContent = O.stampWait; return; }
+      state.busy = true; b.classList.add('is-busy');
+      try {
+        const kind = kindOf(state.answer); const seal = $('docSeal'), st = $('docStamp');
+        st.hidden = true; st.classList.remove('inked');
+        const r = seal.getBoundingClientRect();
+        if (r.top < 64 || r.bottom > window.innerHeight - 24) { seal.scrollIntoView({ block: 'center', behavior: REDUCED ? 'auto' : 'smooth' }); await wait(REDUCED ? 0 : 480); }
+        if (TA.officeStampAnim) await TA.officeStampAnim(seal, st, kind, () => applyStamp(kind));
+        else { applyStamp(kind); Sound.play('stamp'); }
+        // the real pigeon: her answer goes to the department while the drawn one flies (js/notify.js)
+        let sending = null; try { if (TA.notify) sending = TA.notify.stamped({ kind, answer: state.answer, date: state.date }); } catch (e) { sending = null; }
+        if (sending) sending.then((res) => { if (res) { const n = $('notifyNote'); n.textContent = O.notified; n.hidden = false; } }).catch(() => {});
+        if (TA.officeDeliver) await TA.officeDeliver(seal, kind);
+        const d = $('dispatch'); $('dispatchNote').textContent = O.dispatched[kind]; update();
+        if (d.hidden) { d.hidden = false; d.classList.remove('arrive'); void d.offsetWidth; d.classList.add('arrive'); }
+        await wait(80); d.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'nearest' });
+      } finally { state.busy = false; b.classList.remove('is-busy'); }
     });
     update();
+    if (officeWired) return;   // the copy buttons live outside the form: wire them once
+    officeWired = true;
     $('btnCopy').addEventListener('click', async () => {
-      const text = letter();
+      const text = officeLetter();
       let ok = false;
       try { if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(text); ok = true; } } catch (e) { ok = false; }
       if (!ok) {
@@ -474,10 +518,10 @@
           ok = document.execCommand && document.execCommand('copy');
         } catch (e) { ok = false; }
       }
-      if (ok) { $('copyStatus').textContent = O.copied; $('copyFallback').hidden = true; Sound.play('chime'); }
+      if (ok) { $('copyStatus').textContent = O.copied; $('copyFallback').hidden = true; Sound.play('chime'); tm('flag', 'copied'); }
       else { $('copyStatus').textContent = O.copyFail; const ta = $('copyFallback'); ta.hidden = false; ta.value = text; ta.focus(); ta.select(); }
     });
-    $('btnByHand').addEventListener('click', () => { $('copyStatus').textContent = O.byHandNote; Sound.play('tap'); });
+    $('btnByHand').addEventListener('click', () => { $('copyStatus').textContent = O.byHandNote; Sound.play('tap'); tm('flag', 'byHand'); });
   }
 
   // ---------------------------------------------------------- boot (called by scenes.js once the scenes exist)
