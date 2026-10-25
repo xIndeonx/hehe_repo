@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>a tiny adventure</title>
+  <meta name="description" content="a tiny adventure hidden inside an invitation.">
+  <meta name="theme-color" content="#fffdfc">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="favicon.svg">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="sym-heart" viewBox="0 0 24 22">
+      <path d="M12 20.5 C 6 15.5, 1.5 11.5, 1.8 7.2 C 2 3.8, 5 1.6, 7.8 2.1 C 9.7 2.4, 11.2 3.8, 12 5.2 C 12.8 3.8, 14.3 2.4, 16.2 2.1 C 19 1.6, 22 3.8, 22.2 7.2 C 22.5 11.5, 18 15.5, 12 20.5 Z" fill="#f49fbb" stroke="#191717" stroke-width="2.2" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="sym-star" viewBox="0 0 24 24">
+      <path d="M12 2.5 l2.6 6.1 6.6 .6 -5 4.4 1.5 6.5 -5.7 -3.4 -5.7 3.4 1.5 -6.5 -5 -4.4 6.6 -.6 z" fill="#fff0bf" stroke="#191717" stroke-width="2" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="sym-paw" viewBox="0 0 20 20">
+      <ellipse cx="10" cy="13" rx="5" ry="4" fill="#f49fbb"/>
+      <circle cx="4.5" cy="8" r="2.2" fill="#f49fbb"/><circle cx="8.5" cy="5" r="2.2" fill="#f49fbb"/>
+      <circle cx="12.5" cy="5" r="2.2" fill="#f49fbb"/><circle cx="16" cy="8" r="2.2" fill="#f49fbb"/>
+    </symbol>
+  </defs>
+</svg>
+
+<audio id="bgm" src="assets/audio/lover-cat-cover.mp3" loop preload="auto" aria-hidden="true"></audio>
+
+<div class="app" id="app">
+  <header class="top" id="top">
+    <span class="wordmark">a tiny adventure</span>
+    <div class="progress" id="progress" aria-label="progress" hidden>
+      <span class="progress-hearts" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span class="progress-text" id="progressText">1 of 4</span>
+    </div>
+    <button id="btnSound" class="chip" type="button" aria-pressed="false">sound: off</button>
+  </header>
+
+  <main id="stage" class="stage">
+
+    <!-- ========== PROLOGUE ========== -->
+    <section class="chapter chapter-prologue" id="ch-prologue" aria-labelledby="h-prologue">
+      <div class="scene-art scene-art-prologue" data-scene="prologue"></div>
+      <div class="prologue-copy">
+        <h1 id="h-prologue" class="title-xl" data-t="prologue.heading"></h1>
+        <p class="lead" data-t="prologue.sub"></p>
+        <button id="btnStart" class="btn btn-primary" type="button" data-t="prologue.cta"></button>
+      </div>
+    </section>
+
+    <!-- ========== CHAPTER 1: MAP ========== -->
+    <section class="chapter" id="ch-map" hidden aria-labelledby="h-map">
+      <div class="scene-head">
+        <p class="eyebrow" data-t="map.eyebrow"></p>
+        <h2 id="h-map" class="scene-title" data-t="map.title"></h2>
+        <p class="scene-instruction" data-t="map.instruction"></p>
+        <p class="scene-helper" data-t="map.helper"></p>
+      </div>
+      <div class="scene-art" data-scene="map"></div>
+      <div class="scene-controls">
+        <span class="scene-progress" data-progress="map"></span>
+        <button class="chip" type="button" data-action="hint" data-t="ui.hint"></button>
+        <button class="chip" type="button" data-action="skip" data-t="ui.skip"></button>
+      </div>
+      <div class="scene-success" hidden>
+        <p class="bridge" data-t="map.bridge"></p>
+        <button class="btn btn-primary" type="button" data-action="next" data-t="map.next"></button>
+      </div>
+    </section>
+
+    <!-- ========== CHAPTER 2: LANE ========== -->
+    <section class="chapter" id="ch-lane" hidden aria-labelledby="h-lane">
+      <div class="scene-head">
+        <p class="eyebrow" data-t="lane.eyebrow"></p>
+        <h2 id="h-lane" class="scene-title" data-t="lane.title"></h2>
+        <p class="scene-instruction" data-t="lane.instruction"></p>
+        <p class="scene-helper" data-t="lane.helper"></p>
+      </div>
+      <div class="scene-art" data-scene="lane"></div>
+      <div class="scene-controls">
+        <span class="scene-progress" data-progress="lane"></span>
+        <button class="chip" type="button" data-action="hint" data-t="ui.hint"></button>
+        <button class="chip" type="button" data-action="skip" data-t="ui.skip"></button>
+      </div>
+      <div class="scene-success" hidden>
+        <p class="bridge" data-t="lane.bridge"></p>
+        <button class="btn btn-primary" type="button" data-action="next" data-t="lane.next"></button>
+      </div>
+    </section>
+
+    <!-- ========== CHAPTER 3: STAIRS ========== -->
+    <section class="chapter" id="ch-stairs" hidden aria-labelledby="h-stairs">
+      <div class="scene-head">
+        <p class="eyebrow" data-t="stairs.eyebrow"></p>
+        <h2 id="h-stairs" class="scene-title" data-t="stairs.title"></h2>
+        <p class="scene-instruction" data-t="stairs.instruction"></p>
+        <p class="scene-helper" data-t="stairs.helper"></p>
+      </div>
+      <div class="scene-art" data-scene="stairs"></div>
+      <div class="scene-controls">
+        <span class="scene-progress" data-progress="stairs"></span>
+        <button class="chip" type="button" data-action="hint" data-t="ui.hint"></button>
+        <button class="chip" type="button" data-action="skip" data-t="ui.skip"></button>
+      </div>
+      <div class="scene-success" hidden>
+        <p class="bridge" data-t="stairs.bridge"></p>
+        <button class="btn btn-primary" type="button" data-action="next" data-t="stairs.next"></button>
+      </div>
+    </section>
+
+    <!-- ========== CHAPTER 4: RINK ========== -->
+    <section class="chapter" id="ch-rink" hidden aria-labelledby="h-rink">
+      <div class="scene-head">
+        <p class="eyebrow" data-t="rink.eyebrow"></p>
+        <h2 id="h-rink" class="scene-title" data-t="rink.title"></h2>
+        <p class="scene-instruction" data-t="rink.instruction"></p>
+        <p class="scene-helper" data-t="rink.helper"></p>
+      </div>
+      <div class="scene-art" data-scene="rink"></div>
+      <div class="scene-controls">
+        <span class="scene-progress" data-progress="rink"></span>
+        <button class="chip" type="button" data-action="hint" data-t="ui.hint"></button>
+        <button class="chip" type="button" data-action="skip" data-t="ui.skip"></button>
+      </div>
+      <div class="scene-success" hidden>
+        <p class="bridge" data-t="rink.bridge"></p>
+        <button class="btn btn-primary" type="button" data-action="next" data-t="rink.next"></button>
+      </div>
+    </section>
+
+    <!-- ========== EPILOGUE ========== -->
+    <section class="chapter chapter-epilogue" id="ch-epilogue" hidden aria-labelledby="h-epilogue">
+      <div class="scene-art scene-art-epilogue" data-scene="epilogue"></div>
+      <div class="reveal-copy">
+        <p class="found" data-t="epilogue.found"></p>
+        <p class="word-label" id="h-epilogue" data-t="epilogue.label"></p>
+        <p class="secret-word" id="secretWord" aria-live="polite"></p>
+        <p class="lead lead-tight" data-t="epilogue.sentence"></p>
+      </div>
+
+      <div class="postcard" id="postcard">
+        <h2 class="postcard-title" data-t="epilogue.replyTitle"></h2>
+        <p class="postcard-hint" data-t="epilogue.replyHint"></p>
+        <fieldset class="choice-group">
+          <legend>my answer</legend>
+          <div class="chips" id="answerChips" role="radiogroup" aria-label="my answer"></div>
+        </fieldset>
+        <fieldset class="choice-group">
+          <legend>the date that works</legend>
+          <div class="chips" id="dateChips" role="radiogroup" aria-label="the date that works"></div>
+        </fieldset>
+        <label class="note-label" for="noteField" data-t="epilogue.noteLabel"></label>
+        <textarea id="noteField" class="note" rows="2" maxlength="240"></textarea>
+        <pre class="letter-preview" id="letterPreview" aria-label="your letter"></pre>
+        <div class="postcard-actions">
+          <button id="btnCopy" class="btn btn-primary" type="button" data-t="epilogue.copy"></button>
+          <button id="btnByHand" class="chip" type="button" data-t="epilogue.byHand"></button>
+        </div>
+        <p class="copy-status" id="copyStatus" aria-live="polite"></p>
+        <textarea id="copyFallback" class="note copy-fallback" rows="7" readonly hidden></textarea>
+      </div>
+
+      <button id="btnReplay" class="link-button" type="button" data-t="epilogue.replay"></button>
+    </section>
+
+  </main>
+
+  <div id="srLive" class="sr-only" aria-live="polite"></div>
+</div>
+
+<noscript><p style="text-align:center;padding:24px;font-family:sans-serif">this tiny adventure needs JavaScript to run.</p></noscript>
+<script src="js/content.js"></script>
+<script src="js/app.js"></script>
+<script src="js/art.js"></script>
+<script src="js/cat.js"></script>
+<script src="js/scenes.js"></script>
+<script src="js/rink.js"></script>
+</body>
+</html>

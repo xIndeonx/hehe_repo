@@ -1,0 +1,29 @@
+/* Starting tokens only. Sample actual PDF illustrations before finalizing. */
+:root {
+  --paper: #fffdfc;
+  --ink: #191717;
+  --ink-muted: #575354;
+  --cat-blue: #bfddfb;
+  --cat-pink: #f9d5e4;
+  --heart: #f49fbb;
+  --rink-ice: #e9f4fd;
+  --butter: #fff0bf;
+  --lavender: #ece8fa;
+  --ink-width-scene: 5;
+  --button-radius: 16px;
+  --scene-radius: 22px;
+  --min-touch-target: 44px;
+  --max-stage-width: 900px;
+  --display-family: "Itim", "Comic Sans MS", cursive;
+  --body-family: "Nunito", system-ui, sans-serif;
+  --motion-quick: 230ms;
+  --motion-scene: 470ms;
+  --motion-celebration: 950ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-quick: 0ms;
+    --motion-scene: 0ms;
+    --motion-celebration: 0ms;
+  }
+}
