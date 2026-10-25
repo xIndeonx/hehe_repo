@@ -212,6 +212,72 @@
         <g class="lantern"><circle class="lamp-glow" cx="${f(dx + dw + 12)}" cy="${f(dy + dh * 0.3)}" r="${f(dw * 0.5)}" fill="url(#${p}-glow)"/><path d="M${f(dx + dw + 12)} ${f(dy + dh * 0.1)} v4" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><rect x="${f(dx + dw + 7)}" y="${f(dy + dh * 0.1 + 4)}" width="10" height="13" rx="2.5" fill="#fff5d6" stroke="${INK}" stroke-width="2.2"/><circle cx="${f(dx + dw + 12)}" cy="${f(dy + dh * 0.1 + 10.5)}" r="2.2" fill="#ffd76a"/></g>
       </g>`;
     },
+    // ---- the Geneva house (the flashback's building, and the one the staircase leads up to).
+    // Drawn in house units (wall 270 wide, 370 tall, origin at the left wall on the ground) and scaled by s;
+    // stroke widths are divided by s so the ink stays the same weight as the rest of the scene.
+    // Geometry (house units): ground door x 116 w 76 h 122; keypad x 78 y -84 w 26 h 36; balcony x 86..236 at y -208
+    // (floor h 10, rail 44); balcony door x 116..206, y -294..-208. HOUSE.door/plat give them back in scene units.
+    house(x, ground, s = 1, p = 'd', { keypad = true } = {}) {
+      const SW = (v) => f(v / s); const g = 0;
+      const win = (wx, wy, ww, wh) => `<rect x="${wx}" y="${wy}" width="${ww}" height="${wh}" rx="4" fill="url(#${p}-ice)" stroke="${INK}" stroke-width="${SW(2.6)}"/><path d="M${wx + ww / 2} ${wy + 2} v${wh - 4} M${wx + 2} ${wy + wh / 2} h${ww - 4}" stroke="${INK}" stroke-width="${SW(1.6)}" opacity=".3"/><rect x="${wx - 4}" y="${wy + wh - 1}" width="${ww + 8}" height="5" rx="2" fill="#fff" stroke="${INK}" stroke-width="${SW(2)}"/>`;
+      const B = { w: 270, y: -370 }, Dr = { x: 116, w: 76, h: 122 }, P = { x: 78, y: -84, w: 26, h: 36 }, K = { x: 86, y: -208, w: 150, h: 10, rail: 44 };
+      const BD = { x: K.x + 30, y: K.y - 86, w: K.w - 60, h: 86 };   // the balcony door
+      const doorY = g - Dr.h;
+      let keys = ''; if (keypad) for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) keys += `<rect class="key" data-k="${r * 3 + c}" x="${P.x + 4 + c * 6.4}" y="${P.y + 4 + r * 6.6}" width="5" height="5" rx="1.2" fill="#fff" stroke="${INK}" stroke-width="${SW(1)}"/>`;
+      const bdRect = `x="${BD.x}" y="${BD.y}" width="${BD.w}" height="${BD.h}" rx="3"`;
+      const inv = `scale(${Number((1 / s).toFixed(5))}) translate(${f(-x)} ${f(-ground)})`;   // slots for cats keep scene coordinates
+      return `<g class="house" transform="translate(${f(x)} ${f(ground)}) scale(${s})">
+        ${D.softShadow(B.w / 2, g + 2, B.w * 0.56, 7 / s, 0.08)}
+        <rect x="0" y="${B.y}" width="${B.w}" height="${-B.y}" fill="url(#${p}-paper)" stroke="${INK}" stroke-width="${SW(3.2)}"/>
+        <g stroke="#ebe1cf" stroke-width="${SW(2)}" stroke-linecap="round">${[0.22, 0.4, 0.58, 0.76, 0.92].map((t) => `<path d="M6 ${B.y + (-B.y) * t} h${B.w - 12}"/>`).join('')}</g>
+        <path d="M-10 ${B.y + 2} h${B.w + 20} v-10 q0 -4 4 -4 h-${B.w + 28} q4 0 4 4 z" fill="var(--pink)" stroke="${INK}" stroke-width="${SW(3)}" stroke-linejoin="round"/>
+        ${D.snowcap(-10, B.y - 10, B.w + 10, B.y - 10, 8, 6).replace(/stroke-width="([\d.]+)"/g, (m, v) => `stroke-width="${SW(Number(v))}"`)}
+        ${win(24, B.y + 38, 44, 50)}${win(B.w - 68, B.y + 38, 44, 50)}
+        ${win(24, B.y + 150, 44, 50)}
+        <!-- the balcony door (it opens in chapter 3): warm inside, frame, the leaf on its hinge -->
+        <g class="door-inside"><rect ${bdRect} fill="#fff1cc"/><rect class="door-light" ${bdRect} fill="#ffe08a" opacity="0"/><g class="door-cats" transform="${inv}"></g></g>
+        <g class="door-slot" transform="${inv}"></g>
+        <g class="door-frame"><rect ${bdRect} fill="none" stroke="${INK}" stroke-width="${SW(2.8)}"/></g>
+        <g class="door-hinge" style="transform-origin:${f(BD.x)}px ${f(BD.y)}px; transform-box: view-box">
+          <rect class="door-peep" ${bdRect} fill="url(#${p}-ice)" stroke="${INK}" stroke-width="${SW(2.8)}"/>
+          <path d="M${BD.x + BD.w / 2} ${BD.y + 2} v${BD.h - 4}" stroke="${INK}" stroke-width="${SW(1.6)}" opacity=".3"/>
+          <circle cx="${BD.x + BD.w * 0.42}" cy="${BD.y + BD.h * 0.55}" r="2" fill="${INK}"/>
+        </g>
+        <g class="lantern"><circle class="lamp-glow" cx="${BD.x + BD.w + 14}" cy="${BD.y + 22}" r="18" fill="url(#${p}-glow)"/><path d="M${BD.x + BD.w + 14} ${BD.y + 8} v4" stroke="${INK}" stroke-width="${SW(2)}" stroke-linecap="round"/><rect x="${BD.x + BD.w + 9}" y="${BD.y + 12}" width="10" height="13" rx="2.5" fill="#fff5d6" stroke="${INK}" stroke-width="${SW(2)}"/><circle cx="${BD.x + BD.w + 14}" cy="${BD.y + 18.5}" r="2.4" fill="#ffd36b"/></g>
+        <g class="balcony-cats" transform="${inv}"></g>
+        <g class="balcony-front">
+          <rect x="${K.x}" y="${K.y}" width="${K.w}" height="${K.h}" rx="3" fill="#fff" stroke="${INK}" stroke-width="${SW(3)}"/>
+          <path d="M${K.x + 6} ${K.y + K.h} v8 M${K.x + K.w - 6} ${K.y + K.h} v8 M${K.x + K.w / 2} ${K.y + K.h} v8" stroke="${INK}" stroke-width="${SW(2.4)}" stroke-linecap="round"/>
+          ${Array.from({ length: 9 }, (_, i) => `<path d="M${K.x + 8 + i * (K.w - 16) / 8} ${K.y} v-${K.rail}" stroke="${INK}" stroke-width="${SW(2.2)}" stroke-linecap="round"/>`).join('')}
+          <path d="M${K.x - 2} ${K.y - K.rail} h${K.w + 4}" stroke="${INK}" stroke-width="${SW(3.2)}" stroke-linecap="round"/>
+          <g class="flowerpot"><path d="M${K.x + K.w - 34} ${K.y - 1} l3 -16 h18 l3 16 z" fill="#e9b48f" stroke="${INK}" stroke-width="${SW(2.2)}" stroke-linejoin="round"/>${D.heart(K.x + K.w - 22, K.y - 24, 11)}${D.heart(K.x + K.w - 30, K.y - 20, 8)}${D.heart(K.x + K.w - 13, K.y - 20, 8)}</g>
+        </g>
+        <!-- the entrance: a door with a little round window and, beside it, the keypad and the number -->
+        <path d="M${Dr.x} ${g} v-${Dr.h - Dr.w / 2} a${Dr.w / 2} ${Dr.w / 2} 0 0 1 ${Dr.w} 0 v${Dr.h - Dr.w / 2} z" fill="#e7f0fb" stroke="${INK}" stroke-width="${SW(3.2)}"/>
+        <path d="M${Dr.x + Dr.w / 2} ${doorY + 6} v${Dr.h - 6}" stroke="${INK}" stroke-width="${SW(2.2)}"/>
+        <circle cx="${Dr.x + Dr.w / 2}" cy="${doorY + Dr.w * 0.42}" r="${Dr.w * 0.16}" fill="url(#${p}-ice)" stroke="${INK}" stroke-width="${SW(2.4)}"/>
+        <circle cx="${Dr.x + Dr.w * 0.4}" cy="${doorY + Dr.h * 0.58}" r="2.6" fill="${INK}"/><circle cx="${Dr.x + Dr.w * 0.6}" cy="${doorY + Dr.h * 0.58}" r="2.6" fill="${INK}"/>
+        <rect x="${Dr.x - 2}" y="${g - 6}" width="${Dr.w + 4}" height="6" fill="#fff" stroke="${INK}" stroke-width="${SW(2.4)}"/>
+        ${keypad ? `<g class="keypad">
+          <rect x="${P.x - 3}" y="${P.y - 3}" width="${P.w + 6}" height="${P.h + 12}" rx="4" fill="#fff" stroke="${INK}" stroke-width="${SW(2.6)}"/>
+          <rect x="${P.x}" y="${P.y}" width="${P.w}" height="${P.h}" rx="3" fill="#dfe8f3"/>
+          ${keys}
+          <circle class="pad-light" cx="${P.x + P.w / 2}" cy="${P.y + P.h + 4.5}" r="2.8" fill="#cfd8e3" stroke="${INK}" stroke-width="${SW(1.2)}"/>
+        </g>` : ''}
+        <g class="house-number"><rect x="${Dr.x + Dr.w + 8}" y="${doorY + 10}" width="20" height="16" rx="3" fill="#fff" stroke="${INK}" stroke-width="${SW(2)}"/><text class="ui-text" x="${Dr.x + Dr.w + 18}" y="${doorY + 22}" text-anchor="middle" font-size="11" fill="${INK}">7</text></g>
+      </g>`;
+    },
+    // scene-unit geometry of the house drawn by D.house(x, ground, s): the balcony floor (plat) and the balcony door
+    houseGeometry(x, ground, s) {
+      return {
+        plat: { x: x + 86 * s, y: ground - 208 * s, w: 150 * s, h: 10 * s, rail: 44 * s },
+        door: { x: x + 116 * s, y: ground - 294 * s, w: 90 * s, h: 86 * s },
+        groundDoor: { x: x + 116 * s, y: ground - 122 * s, w: 76 * s, h: 122 * s },
+        pad: { x: x + 78 * s, y: ground - 84 * s, w: 26 * s, h: 36 * s },
+        wall: { x, y: ground - 370 * s, w: 270 * s, h: 370 * s },
+        balconyX: x + 86 * s, balconyW: 150 * s, balconyY: ground - 208 * s,
+      };
+    },
     // ---- a little snowman with a pink scarf and the cats' own ω smile
     snowman(x, y, s = 1) {
       return `<g class="snowman" transform="translate(${f(x)} ${f(y)}) scale(${s})">

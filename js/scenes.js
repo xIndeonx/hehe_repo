@@ -28,11 +28,12 @@
   }
   function setT(el, x, y, extra = '') { el.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) ${extra}`); }
   // mount two cats into the <g class="cats"> of a scene
-  function mountCats(svg, h, blueExpr = 'shy', pinkExpr = 'calm') {
+  function mountCats(svg, h, blueExpr = 'shy', pinkExpr = 'calm', idle = null) {
     const host = svg.querySelector('.cats');
     host.innerHTML = Cat.markup('blue', 'blue') + Cat.markup('pink', 'pink');
     const blue = Cat.attach(svg, 'blue', 'blue', h), pink = Cat.attach(svg, 'pink', 'pink', h);
     blue.setExpression(blueExpr); pink.setExpression(pinkExpr);
+    Cat.pettable(blue, pink, idle);
     return { blue, pink, stop: Cat.life([blue, pink]) };
   }
   function sparkles(svg, x, y, n = 5, spread = 40) {
@@ -104,7 +105,7 @@
           <g class="fx"></g>`;
         svg = makeSvg(container, `0 0 ${W} ${Hh}`, inner, 'the two cats hold their invitation; a tiny sealed pocket is tucked into the envelope');
         if (life) life();
-        cats = mountCats(svg, catH, 'shy', 'delighted');
+        cats = mountCats(svg, catH, 'shy', 'delighted', () => true);
         life = cats.stop;
         // blue at the left holding the envelope, pink at the right
         cats.blue.place(ex - catH * 0.2, ground).set({ raiseR: 1 });
@@ -177,11 +178,17 @@
           <g transform="translate(${w * 0.9} ${h * 0.13})"><circle r="9" fill="#fff" stroke="var(--ink)" stroke-width="1.8"/><path d="M0 -7 l2.5 7 l-2.5 7 l-2.5 -7 z" fill="var(--heart)" stroke="var(--ink)" stroke-width="1.4" stroke-linejoin="round"/><text y="-11" text-anchor="middle" font-size="8" fill="var(--ink-soft)">n</text></g>
           <text x="${w * 0.56}" y="${h * 0.2}" text-anchor="middle" font-size="${layout === 'wide' ? 18 : 15}" fill="var(--ink-soft)">a tiny map</text>
           ${Doodle.heart(w * 0.58, h * 0.36, 14)}
+          <g class="map-note" transform="rotate(-6 ${w * 0.62} ${h * 0.5})">
+            <text x="${w * 0.625}" y="${h * 0.47}" text-anchor="middle" font-size="${layout === 'wide' ? 12 : 10.5}" fill="#6b5a8c">${C.map.note}</text>
+            <path d="M${w * 0.58} ${h * 0.5} q ${w * 0.04} ${h * 0.04} ${w * 0.05} ${h * 0.09}" fill="none" stroke="#6b5a8c" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="3 3"/>
+            <path d="M${w * 0.615} ${h * 0.565} l${w * 0.015} ${h * 0.025} l${w * 0.028} -${h * 0.012}" fill="none" stroke="#6b5a8c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <text x="${w * 0.655}" y="${h * 0.545}" font-size="${layout === 'wide' ? 11 : 9.5}" fill="#6b5a8c">${C.map.note2}</text>
+          </g>
           <path d="M${house[0] - 16} ${house[1] + 14} v-14 l16 -14 l16 14 v14 z" fill="#fff" stroke="var(--ink)" stroke-width="2.6" stroke-linejoin="round"/>
           <path d="M${house[0] - 19} ${house[1] + 1} l19 -17 l19 17" fill="none" stroke="var(--heart)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
           <rect x="${house[0] - 5}" y="${house[1] + 2}" width="10" height="12" rx="3" fill="var(--pink)" stroke="var(--ink)" stroke-width="2"/>
           <text x="${house[0]}" y="${house[1] + 30}" text-anchor="middle" font-size="12" fill="var(--ink-soft)">home</text>
-          ${Doodle.pine(w * 0.42, h * 0.72, 30)}${Doodle.pine(w * 0.62, h * 0.66, 24)}${Doodle.snowBush(w * 0.26, h * 0.6, 0.5, 2.4)}
+          ${Doodle.pine(w * 0.42, h * 0.74, 30)}${Doodle.pine(w * 0.63, h * 0.74, 22)}${Doodle.snowBush(w * 0.26, h * 0.6, 0.5, 2.4)}
           ${Doodle.booth(booth[0] - 22, booth[1] - 44, 44, 44, { sw: 2.2, sign: false })}<text x="${booth[0]}" y="${booth[1] + 16}" text-anchor="middle" font-size="12" fill="var(--ink-soft)">rink</text>
           <path class="route-full" d="${route}" fill="none" stroke="var(--heart)" stroke-width="3.2" stroke-dasharray="7 7" stroke-linecap="round" opacity="0"/>
         </g>`;
@@ -231,7 +238,7 @@
         <g class="fx"></g>`;
       svg = makeSvg(container, L.vb, inner, 'an open envelope with a folded map on top; pink cat at the left, blue cat peeking from the right');
       if (life) life();
-      cats = mountCats(svg, L.catH, 'shy', 'curious'); life = cats.stop;
+      cats = mountCats(svg, L.catH, 'shy', 'curious', () => !state.done); life = cats.stop;
       cats.pink.place(L.pink.cx, L.pink.y); cats.pink.faceDir(1); cats.pink.lookAt(1, 1);
       cats.blue.place(L.blue.cx, L.blue.y); cats.blue.faceDir(-1); cats.blue.lookAt(-1, 1);
       svg.querySelectorAll('.fold').forEach((f) => onActivate(f, () => openFold(Number(f.dataset.i))));
@@ -265,7 +272,15 @@
       updateNext();
       // the cats react: a perk, a glance at the map
       const who = i % 2 ? cats.blue : cats.pink;
-      who.perk(); if (i === 1) { cats.blue.setExpression('curious'); }
+      who.perk();
+      if (i === 1) {   // this fold uncovers his handwritten note: he is briefly very sure of himself; she is not
+        await wait(380);
+        cats.blue.setExpression('proud'); cats.blue.set({ sy: 1.05, sx: 0.98 }); Sound.play('hmm');
+        await wait(500);
+        cats.pink.setExpression('skeptical'); await cats.pink.tiltTo(7, 240);
+        await wait(900);
+        cats.blue.set({ sy: 1, sx: 1 }); cats.blue.setExpression('shy'); cats.pink.setExpression('curious'); await cats.pink.tiltTo(0, 220);
+      }
       if (state.open.every(Boolean)) { state.done = true; await wait(300); finish(false); }
     }
     async function finish(instant) {
@@ -376,7 +391,7 @@
         <g class="fx"></g>`;
       svg = makeSvg(container, L.vb, inner, 'the two cats at the start of a snowy lane made of three path pieces leading to a little ticket booth');
       if (life) life();
-      cats = mountCats(svg, L.catH, 'shy', 'curious'); life = cats.stop;
+      cats = mountCats(svg, L.catH, 'shy', 'curious', () => !state.done && !state.crossing); life = cats.stop;
       placePair(L.start.x, L.start.y);
       svg.querySelectorAll('.tile').forEach((t) => onActivate(t, () => rotateTile(Number(t.dataset.i))));
       updateLinks(true);
@@ -423,13 +438,23 @@
       const trail = svg.querySelector('.trail'); let lastPaw = 0; const len = path.getTotalLength();
       Sound.play('glide');
       const stamp = (d, p) => { if (d - lastPaw > 34) { lastPaw = d; trail.insertAdjacentHTML('beforeend', Doodle.paw(p.x + (Math.random() - 0.5) * 8, p.y + 4, L.tile * 0.09, 'class="paw-fx"')); } };
-      const dur = 3200;
-      // single file: blue leads, pink follows a body-length behind on the same line, no sideways offset
-      await Promise.all([
-        cats.blue.walkAlong(path, 0, 1, dur),
-        cats.pink.walkAlong(path, 0, 1, dur, { trail: L.catH * 0.95 }),
-        tween(dur, (t) => { const e = ease.inOut(t); const d = len * e; stamp(d, path.getPointAtLength(d)); }),
+      // an easy stroll, single file: blue leads, pink waits a beat and follows a body-length behind on the same line.
+      // Half way (on the bend) he nearly slips, scrambles upright and checks whether anyone saw. She saw.
+      const follow = L.catH * 0.95; const SLIP = 0.44; const dur1 = 3500, dur2 = 4400;   // ~150 units/s: a stroll, not a trot
+      const walk = (from, to, dur) => Promise.all([
+        cats.blue.walkAlong(path, from, to, dur),
+        cats.pink.walkAlong(path, from, to, dur, { trail: follow }),
+        tween(dur, (t) => { const e = ease.walk(t); const d = len * (from + (to - from) * e); stamp(d, path.getPointAtLength(d)); }),
       ]);
+      await walk(0, SLIP, dur1);
+      await cats.blue.nearSlip();
+      await wait(160);
+      await cats.blue.lookAt(-1, 200); await wait(240);                       // did anyone see that?
+      cats.pink.setExpression('joy'); await cats.pink.tiltTo(8, 220); Sound.play('hmm');   // she saw.
+      await wait(420);
+      cats.blue.setExpression('sheepish'); await cats.blue.lookAt(0, 200); await wait(300);
+      cats.pink.setExpression('pleased'); await cats.pink.tiltTo(0, 200); cats.blue.setExpression('shy');
+      await walk(SLIP, 1, dur2);
       path.remove();
       // arrival: they settle side by side in front of the booth, then a little hop and a heart between them
       const b0 = { x: cats.blue.s.x, y: cats.blue.s.y }, p0 = { x: cats.pink.s.x, y: cats.pink.s.y };
@@ -476,27 +501,31 @@
               <g fill="#c9a977"><circle cx="14" cy="18" r="2.4"/><circle cx="76" cy="18" r="2.4"/><circle cx="14" cy="60" r="2.4"/><circle cx="76" cy="60" r="2.4"/><circle cx="14" cy="102" r="2.4"/><circle cx="76" cy="102" r="2.4"/></g>
               ${Doodle.heart(45, 62, 26)}`,
         sil: 'M3 3 h84 q3 0 3 3 v111 q0 3 -3 3 h-84 q-3 0 -3 -3 v-111 q0 -3 3 -3 z' },
-      box: { w: 100, h: 168, name: 'the tall box', n: 3,
-        art: `<rect x="3" y="3" width="94" height="162" rx="9" fill="#fbf3e4" stroke="var(--ink)" stroke-width="3.4"/>
-              <rect x="3" y="140" width="94" height="25" rx="7" fill="#efdfbf" opacity=".7"/>
-              <path d="M3 58 h94 M3 112 h94" stroke="var(--ink)" stroke-width="2.8" fill="none"/>
-              <path d="M38 3 v55 M62 3 v55" stroke="var(--pink)" stroke-width="7" opacity=".8"/>
-              <rect x="22" y="22" width="56" height="22" rx="6" fill="#fff" stroke="var(--ink)" stroke-width="2.4"/>
-              <text x="50" y="38" text-anchor="middle" font-size="14">fragile</text>
-              ${Doodle.heart(50, 86, 26)}${Doodle.star(50, 140, 24)}`,
+      box: { w: 100, h: 168, name: 'the little fridge', n: 3,
+        art: `<rect x="12" y="156" width="14" height="10" rx="3" fill="var(--ink)"/><rect x="74" y="156" width="14" height="10" rx="3" fill="var(--ink)"/>
+              <rect x="3" y="3" width="94" height="156" rx="10" fill="#fbf7f0" stroke="var(--ink)" stroke-width="3.4"/>
+              <path d="M3 56 h94" stroke="var(--ink)" stroke-width="3" fill="none"/>
+              <path d="M12 12 v34 M12 68 v78" stroke="#fff" stroke-width="3" opacity=".9" stroke-linecap="round"/>
+              <rect x="78" y="16" width="9" height="30" rx="4.5" fill="#fff" stroke="var(--ink)" stroke-width="2.6"/>
+              <rect x="78" y="70" width="9" height="52" rx="4.5" fill="#fff" stroke="var(--ink)" stroke-width="2.6"/>
+              <g transform="translate(26 70) rotate(-6)"><rect x="0" y="0" width="34" height="30" rx="3" fill="var(--butter)" stroke="var(--ink)" stroke-width="2.2"/><path d="M6 11 h22 M6 18 h16 M6 25 h12" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round" opacity=".55"/><circle cx="17" cy="2" r="4.2" fill="var(--heart)" stroke="var(--ink)" stroke-width="1.8"/></g>
+              ${Doodle.heart(36, 123, 22)}${Doodle.star(64, 128, 20)}
+              <circle cx="48" cy="26" r="6" fill="var(--blue)" stroke="var(--ink)" stroke-width="2.2"/><circle cx="30" cy="32" r="4.5" fill="var(--pink)" stroke="var(--ink)" stroke-width="2"/>`,
         sil: 'M3 3 h94 q3 0 3 3 v159 q0 3 -3 3 h-94 q-3 0 -3 -3 v-159 q0 -3 3 -3 z' },
     };
     const IDS = ['stool', 'crate', 'box'];
     const state = { placed: { stool: false, crate: false, box: false }, selected: null, done: false, demoShown: false, climbing: false };
     let svg, layout, container, cats, life = null, demoTimer = null, drag = null;
+    // the Geneva house from the flashback (Doodle.house), drawn so its balcony is one small hop above the fridge:
+    // the staircase of helpers leads up to that balcony and its door. `door` and `plat` are derived from the house.
+    const withHouse = (lay) => Object.assign(lay, Doodle.houseGeometry(lay.house.x, lay.ground, lay.house.s));
     const LAY = {
-      // the door sits on a little landing one small hop above the tallest box; the landing reaches back over the box
-      wide: { vb: '0 0 900 610', W: 900, H: 610, k: 0.85, ground: 400, groundX: [20, 612], booth: { x: 612, y: 30, w: 256, h: 370 }, door: { x: 696, y: 144, w: 88, h: 96 }, plat: { x: 574, y: 240, w: 140, h: 11, rail: 30, railW: 24 },
-        ghosts: { stool: { x: 330 }, crate: { x: 404 }, box: { x: 486 } }, cats: { blue: { cx: 112 }, pink: { cx: 230 } }, catH: 100,
-        tray: { x: 20, y: 436, w: 580, h: 162, slots: { stool: 120, crate: 300, box: 480 } }, label: { x: 300, y: 80, ax: [470, 90, 580, 96, 690, 170] } },
-      tall: { vb: '0 0 420 590', W: 420, H: 590, k: 0.6, ground: 360, groundX: [8, 300], booth: { x: 300, y: 60, w: 104, h: 300 }, door: { x: 326, y: 168, w: 52, h: 68 }, plat: { x: 276, y: 236, w: 70, h: 9, rail: 24, railW: 18 },
-        ghosts: { stool: { x: 132 }, crate: { x: 184 }, box: { x: 240 } }, cats: { blue: { cx: 34 }, pink: { cx: 88 } }, catH: 68,
-        tray: { x: 8, y: 400, w: 404, h: 140, slots: { stool: 68, crate: 205, box: 340 } }, label: { x: 150, y: 44, ax: [205, 50, 272, 62, 330, 170] } },
+      wide: withHouse({ vb: '0 0 900 610', W: 900, H: 610, k: 0.85, ground: 400, groundX: [20, 900], house: { x: 640, s: 0.84 },
+        ghosts: { stool: { x: 376 }, crate: { x: 450 }, box: { x: 532 } }, cats: { blue: { cx: 112 }, pink: { cx: 230 } }, catH: 100,
+        tray: { x: 20, y: 436, w: 580, h: 162, slots: { stool: 120, crate: 300, box: 480 } }, label: { x: 300, y: 80, ax: [470, 90, 600, 90, 720, 150] } }),
+      tall: withHouse({ vb: '0 0 420 590', W: 420, H: 590, k: 0.6, ground: 360, groundX: [8, 420], house: { x: 266, s: 0.6 },
+        ghosts: { stool: { x: 132 }, crate: { x: 184 }, box: { x: 240 } }, cats: { blue: { cx: 40 }, pink: { cx: 92 } }, catH: 64,
+        tray: { x: 8, y: 400, w: 404, h: 140, slots: { stool: 68, crate: 205, box: 340 } }, label: { x: 150, y: 44, ax: [205, 50, 300, 66, 344, 178] } }),
     };
     const objTop = (id) => LAY[layout].ground - OBJ[id].h * LAY[layout].k;
     const ghostPos = (id) => ({ x: LAY[layout].ghosts[id].x, y: objTop(id) });
@@ -513,7 +542,7 @@
     function render() {
       const L = LAY[layout]; const k = L.k; const g = L.ground; const wide = layout === 'wide';
       const stepPts = IDS.map((id) => ({ x: L.ghosts[id].x + (OBJ[id].w * k) / 2, y: objTop(id) }));
-      const landX = L.plat.x + L.plat.w * 0.36;
+      const landX = L.plat.x + L.plat.w * 0.42;
       const climb = `M${L.cats.pink.cx} ${g - 10} Q ${stepPts[0].x - 30} ${stepPts[0].y - 30} ${stepPts[0].x} ${stepPts[0].y - 8} Q ${stepPts[1].x - 20} ${stepPts[1].y - 40} ${stepPts[1].x} ${stepPts[1].y - 8} Q ${stepPts[2].x - 20} ${stepPts[2].y - 40} ${stepPts[2].x} ${stepPts[2].y - 8} Q ${(stepPts[2].x + landX) / 2} ${L.plat.y - 34} ${landX} ${L.plat.y - 8}`;
       const scenery = wide
         ? `${Doodle.hills(L.W, g - 120, L.H)}${Doodle.pine(70, g - 96, 90, { ink: false, fill: '#dbe8f8' })}${Doodle.pine(130, g - 104, 70, { ink: false, fill: '#e6eefa' })}${Doodle.pine(560, g - 92, 76, { ink: false, fill: '#dbe8f8' })}${Doodle.cloud(90, 110, 0.8)}${Doodle.cloud(420, 70, 0.6)}${Doodle.pine(40, g, 96)}`
@@ -527,8 +556,8 @@
         <path d="M${L.groundX[0]} ${g} q${(L.groundX[1] - L.groundX[0]) / 2} 4 ${L.groundX[1] - L.groundX[0]} 0" fill="none" stroke="var(--ink)" stroke-width="3.2" stroke-linecap="round"/>
         ${Doodle.snowBush(L.groundX[0] + 40, g, 0.8 * (k + 0.3))}
         <g class="step-glows">${IDS.map((id) => { const p = ghostPos(id); const o = OBJ[id]; return `<rect class="step-glow" data-id="${id}" x="${p.x - 8}" y="${p.y - 8}" width="${o.w * k + 16}" height="${o.h * k + 16}" rx="12" fill="var(--butter)" opacity="0"/>`; }).join('')}<rect class="step-glow" data-id="plat" x="${L.plat.x - 8}" y="${L.plat.y - 10}" width="${L.plat.w + 16}" height="${L.plat.h + 20}" rx="10" fill="var(--butter)" opacity="0"/></g>
-        ${Doodle.tower(L.booth.x, L.booth.y, L.booth.w, L.booth.h, L.door, L.plat, 's')}
-        <g class="door-envelope">${Doodle.envelope(L.door.x + L.door.w * 0.2, L.door.y + L.door.h * 0.3, L.door.w * 0.6, L.door.w * 0.42, 2.4)}</g>
+        ${Doodle.house(L.house.x, g, L.house.s, 's')}
+        <g class="door-envelope">${Doodle.envelope(L.door.x + L.door.w * 0.22, L.door.y + L.door.h * 0.3, L.door.w * 0.56, L.door.w * 0.4, 2.4)}</g>
         <g class="goal-label">
           <text class="ui-text" x="${L.label.x}" y="${L.label.y}" text-anchor="middle" font-size="${wide ? 19 : 15}" fill="var(--ink)">${C.stairs.label}</text>
           ${Doodle.arrowCurve(`M${L.label.ax[0]} ${L.label.ax[1]} Q ${L.label.ax[2]} ${L.label.ax[3]} ${L.label.ax[4]} ${L.label.ax[5]}`, 2.6)}${Doodle.arrowHead(L.label.ax[4], L.label.ax[5], 50, 8)}
@@ -550,10 +579,10 @@
         <g class="objects">${IDS.map(objMarkup).join('')}</g>
         <g class="cats"></g>
         <g class="fx"></g>`;
-      svg = makeSvg(container, L.vb, inner, 'a little tower with a door high up on a landing; three ascending outlines lead up to it; a tray below holds a stool, a crate and a tall box');
-      { const env = svg.querySelector('.door-envelope'); const frame = svg.querySelector('.door-frame'); frame.parentNode.insertBefore(env, frame); }
+      svg = makeSvg(container, L.vb, inner, 'the Geneva house from the flashback; three ascending outlines lead up to its balcony and the balcony door; a tray below holds a stool, a crate and a little fridge');
+      svg.querySelector('.door-slot').appendChild(svg.querySelector('.door-envelope'));   // the envelope waits inside the balcony door, behind the frame and the leaf (scene coordinates)
       if (life) life();
-      cats = mountCats(svg, L.catH, 'shy', 'curious'); life = cats.stop;
+      cats = mountCats(svg, L.catH, 'shy', 'curious', () => !state.done && !state.climbing && !drag && !state.selected); life = cats.stop;
       cats.blue.place(L.cats.blue.cx, g); cats.pink.place(L.cats.pink.cx, g); cats.blue.faceDir(1); cats.pink.faceDir(1); cats.pink.lookAt(1, 1);
       svg.querySelectorAll('.obj').forEach((o) => {
         const id = o.dataset.id;
@@ -660,7 +689,8 @@
       state.climbing = true;
       const L = LAY[layout]; const k = L.k; const h = L.catH; const fx = svg.querySelector('.fx');
       const steps = IDS.map((id) => ({ x: L.ghosts[id].x + (OBJ[id].w * k) / 2, y: objTop(id) + 2 }));
-      const land = { x: L.plat.x + L.plat.w * 0.36, y: L.plat.y + 1 };
+      const land = { x: L.plat.x + L.plat.w * 0.42, y: L.plat.y + 1 };   // on the balcony, in front of its door; she stays visible a step below
+      const behindRail = (c) => { const slot = svg.querySelector('.balcony-cats'); if (slot && c.el.parentNode !== slot) slot.appendChild(c.el); };
       const doorC = { x: L.door.x + L.door.w / 2, y: L.door.y + L.door.h };
       // 1. the staircase glows from the bottom up
       for (const id of IDS.concat(['plat'])) { const g = svg.querySelector(`.step-glow[data-id="${id}"]`); tween(700, (t) => g.setAttribute('opacity', String(0.75 * Math.sin(Math.PI * t)))); Sound.play('chime'); await wait(190); }
@@ -674,6 +704,11 @@
       const hopB = async () => { for (const p of steps) { await cats.blue.hopTo(p.x, p.y, { height: 40 * (k + 0.4), dur: 520 }); await wait(130); } await cats.blue.hopTo(land.x, land.y, { height: 36 * (k + 0.4), dur: 560 }); };
       const hopP = async () => { await wait(640); for (const p of steps) { await cats.pink.hopTo(p.x, p.y, { height: 40 * (k + 0.4), dur: 520 }); await wait(130); } };
       await Promise.all([hopB(), hopP()]);
+      // the summit: he poses like a mountaineer for a moment; she looks at him; he immediately acts normal
+      behindRail(cats.blue);
+      await wait(120); cats.blue.lookAtViewer(220); await cats.blue.triumph(1000); cats.blue.gazeReset(200);
+      cats.pink.setExpression('joy'); await cats.pink.tiltTo(8, 220); await wait(300); cats.pink.setExpression('delighted'); await cats.pink.tiltTo(0, 200);
+      cats.blue.setExpression('shy'); await wait(200);
       // 7. the door swings open on its hinge; warm light inside
       const leaf = svg.querySelector('.door-hinge'); const light = svg.querySelector('.door-light');
       Sound.play('unlock');
@@ -688,13 +723,13 @@
       Sound.play('chime'); spawnHearts(fx, land.x, land.y - h - 8, 3, 40);
       cats.blue.setExpression('delighted'); await wait(300);
       // 9-10. pink joins him on the landing; a little nuzzle
-      await cats.pink.hopTo(land.x - h * 0.42, land.y, { height: 36 * (k + 0.4), dur: 560 });
+      await cats.pink.hopTo(land.x - h * 0.42, land.y, { height: 36 * (k + 0.4), dur: 560 }); behindRail(cats.pink);
       cats.pink.setExpression('affectionate'); cats.blue.setExpression('affectionate');
       await Promise.all([cats.blue.nuzzle(-1, 320), cats.pink.nuzzle(1, 320)]); Sound.play('meow'); spawnHearts(fx, land.x - h * 0.2, land.y - h - 4, 2, 24); await wait(420);
       await Promise.all([cats.blue.leanTo(0, 200), cats.pink.leanTo(0, 200)]);
       // 11. both go in through the doorway (they shrink a little with the depth and slip behind the frame)
       cats.blue.faceDir(1); cats.pink.faceDir(1);
-      const inside = async (c, delay) => { await wait(delay); const x0 = c.s.x, y0 = c.s.y; Sound.play('hop'); svg.querySelector('.door-inside').appendChild(c.el); // behind the frame and the leaf now
+      const inside = async (c, delay) => { await wait(delay); const x0 = c.s.x, y0 = c.s.y; Sound.play('hop'); svg.querySelector('.door-cats').appendChild(c.el); // behind the frame and the leaf now (scene coordinates)
         await tween(600, (t) => { const e = ease.inOut(t); c.set({ x: x0 + (doorC.x - x0) * e, y: y0 + (doorC.y - y0) * e - 8 * Math.sin(Math.PI * t), sx: 1 - 0.3 * e, sy: 1 - 0.3 * e }); c.el.setAttribute('opacity', String(1 - Math.max(0, (t - 0.6) / 0.4))); }); };
       await Promise.all([inside(cats.blue, 0), inside(cats.pink, 260), tween(900, (t) => env.setAttribute('opacity', String(1 - t)))]);
       // 12-13. the door closes gently; the peephole and lantern glow, a few sparkles
@@ -760,7 +795,7 @@
         <g class="fx"></g>`;
       const svg = makeSvg(container, `0 0 ${W} ${Hh}`, inner, 'the two cats snuggled in front of an open envelope; the secret word rises out of it');
       if (life) life();
-      cats = mountCats(svg, catH, 'affectionate', 'affectionate'); life = cats.stop;
+      cats = mountCats(svg, catH, 'affectionate', 'affectionate', () => true); life = cats.stop;
       cats.blue.place(W / 2 - catH * 0.52, Hh - 8).set({ lean: 7 }); cats.pink.place(W / 2 + catH * 0.52, Hh - 8).set({ lean: -7 });
       cats.blue.faceDir(1); cats.pink.faceDir(-1);
       const section = ctx.section; section.classList.remove('reveal-ready'); void section.offsetWidth;

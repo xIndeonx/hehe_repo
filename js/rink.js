@@ -87,6 +87,18 @@
           <path class="trail heart-trail" data-seg="heart" d="${heartD()}" fill="none" stroke="var(--heart)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0 100000" opacity=".95"/>
         </g>
         <g class="swirl"></g>
+        <!-- a tiny boombox at the boards: tap it and the cats do a secret little dance -->
+        <g class="note-btn has-fxi" role="button" tabindex="0" aria-label="${C.rink.dance}" transform="translate(${R.cx - R.rx * 0.78} ${R.cy + R.ry * 0.62})"><g class="fxi">
+          <circle class="hit" r="30" fill="transparent"/>
+          ${Doodle.softShadow(0, 12, 20, 4, 0.1)}
+          <path d="M-8 -14 q8 -6 16 0" fill="none" stroke="var(--ink)" stroke-width="2.6" stroke-linecap="round"/>
+          <path d="M12 -12 l9 -11" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/><circle cx="21" cy="-23" r="1.8" fill="var(--ink)"/>
+          <rect x="-20" y="-12" width="40" height="24" rx="5" fill="#fff" stroke="var(--ink)" stroke-width="2.6"/>
+          <circle cx="-9.5" cy="0" r="6.5" fill="var(--pink)" stroke="var(--ink)" stroke-width="2.2"/><circle cx="-9.5" cy="0" r="2" fill="var(--ink)"/>
+          <circle cx="9.5" cy="0" r="6.5" fill="var(--blue)" stroke="var(--ink)" stroke-width="2.2"/><circle cx="9.5" cy="0" r="2" fill="var(--ink)"/>
+          <rect x="-5" y="-9" width="10" height="4" rx="1.5" fill="var(--ink)" opacity=".55"/>
+          <g class="note-float"><path d="M-2 -22 a2.6 2.6 0 1 0 0.1 0 M1 -22 v-10 l5.5 -2 v3.2 l-5.5 2" fill="var(--heart)" stroke="var(--ink)" stroke-width="1.4" stroke-linejoin="round"/><path d="M-2 -22 v-9 l5.5 -2" fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linecap="round"/></g>
+        </g></g>
         <g class="markers"></g>
         <g class="cats"></g>
         <g class="fx"></g>
@@ -113,6 +125,7 @@
       const host = svg.querySelector('.cats'); host.innerHTML = Cat.markup('blue', 'blue') + Cat.markup('pink', 'pink');
       blue = Cat.attach(svg, 'blue', 'blue', L.catH); pink = Cat.attach(svg, 'pink', 'pink', L.catH);
       blue.setExpression('shy'); pink.setExpression('calm'); blue.set({ skates: 1 }); pink.set({ skates: 1 }); life = Cat.life([blue, pink]);
+      Cat.pettable(blue, pink, () => state.phase === 'idle');
       segs = {}; svg.querySelectorAll('.trail').forEach((t) => { segs[t.dataset.seg] = { el: t, len: t.getTotalLength() }; });
       const mk = svg.querySelector('.markers'); const s = layout === 'wide' ? 54 : 50;
       markerPts().forEach(([x, y], i) => {
@@ -129,6 +142,9 @@
         g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tapBeat(i); } });
       });
       applyState();
+      const nb = svg.querySelector('.note-btn');
+      nb.addEventListener('click', (e) => { e.preventDefault(); secretDance(); });
+      nb.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); secretDance(); } });
       // the spotlight pool follows the pair
       const spot = svg.querySelector('.spot-follow');
       if (spotRaf) cancelAnimationFrame(spotRaf);
@@ -221,24 +237,67 @@
       await glide('s2', 1400);
       blue.setExpression('shy'); pink.setExpression('calm');
     }
+    // a little star that circles a dizzy head
+    function orbitStar(cat, ms) {
+      const fx = svg.querySelector('.fx'); const g = svgEl('g', { class: 'orbit' }); g.innerHTML = Doodle.star(0, 0, 14); fx.appendChild(g);
+      const t0 = performance.now(); let raf = null;
+      const step = (now) => { const t = (now - t0) / 1000; const r = L.catH * 0.5; g.setAttribute('transform', `translate(${(cat.s.x + Math.cos(t * 5) * r).toFixed(1)} ${(cat.s.y - L.catH * 1.02 * cat.s.sy + Math.sin(t * 5) * r * 0.32).toFixed(1)}) rotate(${(t * 240).toFixed(0)})`); if (now - t0 < ms) raf = requestAnimationFrame(step); else g.remove(); };
+      raf = requestAnimationFrame(step);
+      return () => { cancelAnimationFrame(raf); g.remove(); };
+    }
     async function beat3() {
-      // the synchronised hop: a deep crouch, a spring with a midair turn, a heart at the top, a soft landing, glide
-      await Promise.all([blue.crouch(0.14, 320), pink.crouch(0.14, 320)]); await wait(110);
-      const bx = blue.s.x, px = pink.s.x, y = blue.s.y;
-      setTimeout(() => spawnHearts(svg.querySelector('.fx'), pairCenter().x, y - L.catH * 1.7, 1, 8), 330);
-      await Promise.all([blue.hopTo(bx, y, { height: L.catH * 0.8, dur: 820, turn: true }), pink.hopTo(px, y, { height: L.catH * 0.8, dur: 820, turn: true })]);
-      blue.faceDir(1); pink.faceDir(-1);
-      sparkles(pairCenter().x, y - 6, 7, 110); cheer(2000);
-      blue.setExpression('delighted'); pink.setExpression('delighted');
-      spawnHearts(svg.querySelector('.fx'), pairCenter().x, y - L.catH, 2, 30); Sound.play('chime');
-      await Promise.all([blue.nod(), pink.nod()]); await wait(260);
-      await glide('s3', 1300);
+      // his turn to show off: he waves her back, winds up, spins beautifully, then far too fast, and ends dizzy.
+      // the music stops dead. "nailed it." She takes his paw, steadies him, and they glide on together.
+      blue.setExpression('proud'); await blue.lookAt(1, 220); await wait(200);
+      await blue.wave('r', 1); Sound.play('mew');                           // "watch this"
+      pink.setExpression('curious'); await pink.tiltTo(-6, 220);
+      const gap = L.gap * 0.5; const px0 = pink.s.x;
+      await tween(360, (t) => { const e = ease.inOut(t); pink.set({ x: px0 + gap * e }); });   // she gives him room
+      swirl(blue.s.x, blue.s.y - 2, L.catH * 0.34); Sound.play('whirr');
+      let stopStar = null;
+      await blue.failedPirouette(() => {
+        Sound.music.pause(); Sound.play('record'); Sound.play('wobble');
+        stopStar = orbitStar(blue, 2600);
+        pink.setExpression('surprised');
+      });
+      await wait(500);
+      // ...and down he goes, flat on the ice. "nailed it."
+      await blue.flop(); ctx.caption(C.rink.nailed, 1900);
+      await wait(1100);
+      // the sweet recovery: she comes over, leans down and kisses him; he springs back up, blushing, and the music returns
+      pink.setExpression('pleased');
+      await tween(520, (t) => { const e = ease.inOut(t); pink.set({ x: px0 + gap - (gap + L.gap * 0.3) * e }); });
+      await Promise.all([pink.leanTo(-14 * pink.s.flip * pink.mirror, 300), pink.tiltTo(12, 300)]);
+      await tween(220, (t) => { const b = Math.sin(Math.PI * t); pink.set({ bob: 6 * b }); });
+      Sound.play('kiss'); const fx = svg.querySelector('.fx');
+      { const k = { x: (pink.s.x + blue.s.x) / 2, y: blue.s.y - L.catH * 0.5 }; const h = svgEl('g', { class: 'kiss-heart', transform: `translate(${k.x.toFixed(1)} ${k.y.toFixed(1)})` }); h.innerHTML = Doodle.heart(0, 0, 18); fx.appendChild(h);
+        tween(700, (t) => { const e = ease.out(t); h.setAttribute('transform', `translate(${k.x.toFixed(1)} ${(k.y - 26 * e).toFixed(1)}) scale(${(0.6 + 0.6 * Math.sin(Math.PI * Math.min(1, t * 1.6)) + 0.2).toFixed(2)})`); h.setAttribute('opacity', String(1 - Math.max(0, (t - 0.6) / 0.4))); }).then(() => h.remove()); }
+      await wait(260); if (stopStar) stopStar();
+      blue.setExpression('surprised'); await blue.springUp(); Sound.play('sparkle');
+      await Promise.all([pink.leanTo(0, 240), pink.tiltTo(0, 240)]);
+      blue.setExpression('delighted'); spawnHearts(fx, pairCenter().x, blue.s.y - L.catH * 0.95, 3, 18);
+      await tween(260, (t) => { const b = Math.sin(Math.PI * t); blue.set({ bob: -5 * b }); });
+      Sound.play('soft'); await wait(380);
+      Sound.music.start();
+      blue.setExpression('affectionate'); pink.setExpression('affectionate');
+      await Promise.all([blue.nuzzle(1, 360), pink.nuzzle(-1, 360)]); await wait(420);
+      await Promise.all([blue.leanTo(0, 240), pink.leanTo(0, 240)]);
+      await tween(320, (t) => { const e = ease.inOut(t); pink.set({ x: pink.s.x + (blue.s.x + 2 * L.gap - pink.s.x) * e }); });
+      cheer(1800);
+      await glide('s3', 1500);
       blue.setExpression('shy'); pink.setExpression('calm');
     }
     async function beat4() {
-      // the finale: a glance, glide to the centre, the heart drawn together, a nuzzle, hearts, the envelope floats down and opens
+      // the finale: a glance, the little synchronised hop, a glide to the centre, the heart drawn together,
+      // a nuzzle, hearts, the envelope floats down and its lock springs open
       await Promise.all([blue.lookAt(1, 240), pink.lookAt(-1, 240)]); await wait(260);
       await Promise.all([blue.lookAt(0, 200), pink.lookAt(0, 200)]);
+      await Promise.all([blue.crouch(0.14, 300), pink.crouch(0.14, 300)]); await wait(100);
+      { const bx = blue.s.x, px = pink.s.x, y = blue.s.y;
+        setTimeout(() => spawnHearts(svg.querySelector('.fx'), pairCenter().x, y - L.catH * 1.7, 1, 8), 330);
+        await Promise.all([blue.hopTo(bx, y, { height: L.catH * 0.8, dur: 820, turn: true }), pink.hopTo(px, y, { height: L.catH * 0.8, dur: 820, turn: true })]);
+        blue.faceDir(1); pink.faceDir(-1); sparkles(pairCenter().x, y - 6, 7, 110); Sound.play('chime'); }
+      await wait(200);
       await glide('s4', 1100);
       state.beat = 4; updateBeats();
       blue.setExpression('excited'); pink.setExpression('pleased');
@@ -286,6 +345,19 @@
       await wait(600);
     }
 
+    // the secret little dance: two seconds of very serious synchronised silliness, then back to business
+    async function secretDance() {
+      if (state.phase !== 'idle' || state.done) return;
+      state.phase = 'busy'; flash(svg.querySelector('.note-btn'), 'pop-in', 400);
+      try {
+        Sound.play('mew'); setTimeout(() => Sound.play('mew'), 500); setTimeout(() => Sound.play('meow'), 1000);
+        cheer(2400);
+        await Promise.all([blue.dance(4, 250), (async () => { await wait(60); await pink.dance(4, 250); })()]);
+        spawnHearts(svg.querySelector('.fx'), pairCenter().x, blue.s.y - L.catH, 2, 30);
+        await Promise.all([blue.bounce(10, 360), pink.bounce(10, 360)]);
+        blue.faceDir(1); pink.faceDir(-1); blue.setExpression('shy'); pink.setExpression('calm');
+      } finally { state.phase = 'idle'; }
+    }
     async function tapBeat(i) {
       if (state.done || state.phase !== 'idle') return;
       if (i !== state.beat) { flash(svg.querySelector(`.beat[data-i="${i}"]`), 'shake', 400); Sound.play('nope'); ctx.announce(`beat ${state.beat + 1} first`); return; }

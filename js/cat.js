@@ -15,7 +15,7 @@
   const INK = '#191717';
   const SW = 4.0;                       // ink stroke at height 100 (the printed line is about 4% of the body height)
   // sampled from the printed cats
-  const COL = { blue: '#b6d6fb', pink: '#fde7ee', heart: '#f49fbb', blush: '#f5a3bd', bow: '#f49fbb', tongue: '#f7a3bd' };
+  const COL = { blue: '#b6d6fb', pink: '#fde7ee', heart: '#f49fbb', blush: '#f5a3bd', bow: '#f49fbb', tongue: '#f7a3bd', lid: 'currentColor', helmet: '#ffd76a', helmet2: '#f4bf3a' };
 
   // ---------------------------------------------------------- geometry (local units, feet at y=0)
   const G = {
@@ -52,6 +52,10 @@
     closed: () => `<path d="M${G.face.eyeL[0] - 4.5} ${G.face.eyeL[1]} h9 M${G.face.eyeR[0] - 4.5} ${G.face.eyeR[1]} h9" fill="none" stroke="${INK}" stroke-width="${SW}" stroke-linecap="round"/>`,
     // the printed "> <" squeeze of pure joy
     squint: () => `<path d="${T.squint}" fill="${INK}"/>`,
+    // little ink spirals: dizzy
+    spiral: () => [G.face.eyeL, G.face.eyeR].map(([x, y]) => `<path transform="translate(${x} ${y})" d="M0.00 1.00 L-0.23 1.08 L-0.49 1.11 L-0.78 1.07 L-1.07 0.96 L-1.34 0.77 L-1.57 0.51 L-1.75 0.18 L-1.86 -0.20 L-1.88 -0.61 L-1.80 -1.04 L-1.63 -1.47 L-1.35 -1.86 L-0.98 -2.20 L-0.52 -2.46 L-0.00 -2.62 L0.57 -2.67 L1.16 -2.60 L1.73 -2.39 L2.27 -2.05 L2.74 -1.58 L3.11 -1.01 L3.36 -0.35 L3.47 0.36 L3.42 1.11 L3.21 1.85 L2.84 2.55 L2.31 3.18 L1.64 3.68 L0.86 4.05 L0.00 4.25 L-0.91 4.26 L-1.82 4.08 L-2.69 3.70 L-3.48 3.13 L-4.15 2.40 L-4.66 1.51 L-4.98 0.52 L-5.09 -0.53 L-4.97 -1.61 L-4.62 -2.67 L-4.04 -3.64 L-3.26 -4.49 L-2.30 -5.17 L-1.20 -5.64 L-0.00 -5.88 L1.24 -5.85 L2.48 -5.57 L3.64 -5.02" fill="none" stroke="${INK}" stroke-width="${SW * 0.42}" stroke-linecap="round"/>`).join(''),
+    // half-closed: the dot cut flat near its top, with an ink lid line along the cut (a skeptical, unamused look)
+    lidded: (r) => [G.face.eyeL, G.face.eyeR].map(([x, y]) => { const dy = -r * 0.3, hw = Math.sqrt(r * r - dy * dy); return `<path class="eye" d="M${(x - hw).toFixed(2)} ${(y + dy).toFixed(2)} A${r} ${r} 0 1 0 ${(x + hw).toFixed(2)} ${(y + dy).toFixed(2)} Z" fill="${INK}"/><path d="M${(x - r * 1.45).toFixed(2)} ${(y + dy).toFixed(2)} h${(r * 2.9).toFixed(2)}" fill="none" stroke="${INK}" stroke-width="${(r * 0.6).toFixed(2)}" stroke-linecap="round"/>`; }).join(''),
   };
   const MOUTHS = {
     w: `<path d="${T.omega}" fill="${INK}" fill-rule="evenodd"/>`,
@@ -72,6 +76,14 @@
     delighted:    { eyes: 'dots', mouth: 'open', blush: true, tilt: 0, ears: [-2, 2] },
     surprised:    { eyes: 'wide', mouth: 'open', blush: false, tilt: 0, ears: [-8, 8] },
     joy:          { eyes: 'squint', mouth: 'open', blush: true, tilt: 0, ears: [-3, 3] },
+    // acting faces built from the same printed parts
+    proud:        { eyes: 'squint', mouth: 'w', blush: true, tilt: -4, ears: [-3, 3] },      // chin up, eyes squeezed shut in satisfaction
+    determined:   { eyes: 'dots', mouth: 'tiny', blush: false, tilt: -6, ears: [-10, 10] },  // the little caret mouth, ears forward
+    skeptical:    { eyes: 'lidded', mouth: 'tiny', blush: false, tilt: 6, ears: [0, 0] },
+    sheepish:     { eyes: 'dots', mouth: 'tiny', blush: true, tilt: 8, ears: [10, -10] },    // ears back, blushing
+    dizzy:        { eyes: 'spiral', mouth: 'tiny', blush: false, tilt: 0, ears: [12, -12] },
+    bashful:      { eyes: 'squint', mouth: 'w', blush: true, tilt: 10, ears: [8, -8] },
+    stern:        { eyes: 'lidded', mouth: 'tiny', blush: false, tilt: 0, ears: [-12, 12] },   // flat lids, ears flat, not amused
   };
 
   // ---------------------------------------------------------- markup
@@ -99,7 +111,7 @@
             <path class="cc-body" d="${G.body}" fill="${col}" stroke="${INK}" stroke-width="${SW}" stroke-linejoin="round"/>
             <g class="cc-ear cc-ear-l">${earPaths(G.earL, col)}${mirror ? bowMarkup() : ''}</g>
             <g class="cc-ear cc-ear-r">${earPaths(G.earR, col)}</g>
-            <g class="cc-face">
+            <g class="cc-face" color="${col}">
               <g class="cc-blush"><path d="${T.blush}" fill="${COL.blush}"/></g>
               <g class="cc-eyes"></g>
               <g class="cc-mouth"></g>
@@ -110,6 +122,14 @@
               <path d="M-6 -1 v4 M6 -1 v4" stroke="${INK}" stroke-width="${SW * 0.6}" stroke-linecap="round"/>
               <path d="M-10.5 3 h20 q3.5 0 3.5 -3.5" fill="none" stroke="${INK}" stroke-width="${SW * 0.8}" stroke-linecap="round"/>
             </g>`).join('')}</g>
+            <g class="cc-cover" opacity="0">${[[G.face.eyeL, T.pawL, 2.8, -37.5], [G.face.eyeR, T.pawR, 21.9, -37]].map(([[x, y], d, cx, cy]) => `<circle cx="${x}" cy="${y + 1}" r="10.5" fill="${col}"/><g transform="translate(${x} ${y + 2}) scale(0.85) translate(${-cx} ${-cy})"><path d="${d}" fill="${INK}"/></g>`).join('')}</g>
+            <g class="cc-helmet" opacity="0"><g class="cc-helmet-y">
+              <path d="M-22 -92 q0 -22 22 -24 q22 2 22 24 z" fill="${COL.helmet}" stroke="${INK}" stroke-width="${SW * 0.8}" stroke-linejoin="round"/>
+              <path d="M-4 -114 h8 v10 h-8 z" fill="${COL.helmet2}" stroke="${INK}" stroke-width="${SW * 0.6}" stroke-linejoin="round"/>
+              <path d="M-30 -92 h60 q3 0 3 3 q0 3 -3 3 h-60 q-3 0 -3 -3 q0 -3 3 -3 z" fill="${COL.helmet2}" stroke="${INK}" stroke-width="${SW * 0.8}" stroke-linejoin="round"/>
+              <path d="M-12 -104 q6 -6 14 -8" fill="none" stroke="#fff" stroke-width="${SW * 0.6}" stroke-linecap="round" opacity=".8"/>
+            </g></g>
+            <g class="cc-sweat" opacity="0"><path d="M44 -84 q-4 7 -4 10 a4 4 0 0 0 8 0 q0 -3 -4 -10 z" fill="#cfe4fb" stroke="${INK}" stroke-width="${SW * 0.55}" stroke-linejoin="round"/></g>
             <g class="cc-paws">
               <path class="cc-paw cc-paw-l" d="${T.pawL}" fill="${INK}"/>
               <path class="cc-paw cc-paw-r" d="${T.pawR}" fill="${INK}"/>
@@ -132,9 +152,10 @@
       this.eyesG = this.q('.cc-eyes'); this.mouthG = this.q('.cc-mouth'); this.blushG = this.q('.cc-blush');
       this.pawL = this.q('.cc-paw-l'); this.pawR = this.q('.cc-paw-r'); this.raiseL = this.q('.cc-raise-l'); this.raiseR = this.q('.cc-raise-r');
       this.shadowG = this.q('.cc-shadow'); this.shadowEl = this.shadowG.firstElementChild; this.skatesG = this.q('.cc-skates');
+      this.coverG = this.q('.cc-cover'); this.helmetG = this.q('.cc-helmet'); this.helmetY = this.q('.cc-helmet-y'); this.sweatG = this.q('.cc-sweat');
       this.mirror = kind === 'pink' ? -1 : 1;
       // authoritative state
-      this.s = { x: 0, y: 0, flip: 1, lean: 0, sx: 1, sy: 1, bob: 0, tilt: 0, gaze: 0, blink: 0, earL: 0, earR: 0, tail: 0, tailIdle: 0, breath: 1, back: false, pawL: 0, pawR: 0, raiseL: 0, raiseR: 0, air: 0, skates: 0 };
+      this.s = { x: 0, y: 0, flip: 1, lean: 0, sx: 1, sy: 1, bob: 0, tilt: 0, gaze: 0, blink: 0, earL: 0, earR: 0, tail: 0, tailIdle: 0, breath: 1, back: false, pawL: 0, pawR: 0, raiseL: 0, raiseR: 0, air: 0, skates: 0, gazeY: 0, cover: 0, helmet: 0, helmetDrop: 0, sweat: 0, spin: 0 };
       this.expr = 'shy'; this.exprBase = EXPRESSIONS.shy;
       this.busy = false; this.phase = Math.random() * 7; this.nextBlink = 1.5 + Math.random() * 3;
       this.setExpression('shy');
@@ -164,7 +185,10 @@
       this.earL.setAttribute('transform', `rotate(${(s.earL + eb[0]).toFixed(2)} ${G.earL.pivot[0]} ${G.earL.pivot[1]})`);
       this.earR.setAttribute('transform', `rotate(${(s.earR + eb[1]).toFixed(2)} ${G.earR.pivot[0]} ${G.earR.pivot[1]})`);
       const tilt = s.tilt + this.exprBase.tilt;
-      this.face.setAttribute('transform', `rotate(${tilt.toFixed(2)} ${G.face.cx} ${G.face.cy}) translate(${(s.gaze * 2.2).toFixed(2)} ${(Math.abs(tilt) * 0.08).toFixed(2)})`);
+      this.face.setAttribute('transform', `rotate(${tilt.toFixed(2)} ${G.face.cx} ${G.face.cy}) translate(${(s.gaze * 2.2).toFixed(2)} ${(Math.abs(tilt) * 0.08 + s.gazeY * 2.4).toFixed(2)})`);
+      this.coverG.setAttribute('opacity', s.cover ? '1' : '0'); this.coverG.setAttribute('transform', this.face.getAttribute('transform'));
+      this.helmetG.setAttribute('opacity', s.helmet ? '1' : '0'); this.helmetY.setAttribute('transform', `translate(0 ${(-s.helmetDrop).toFixed(2)})`);
+      this.sweatG.setAttribute('opacity', s.sweat ? String(s.sweat) : '0');
       this.face.setAttribute('opacity', s.back ? '0' : '1');
       this.blushG.setAttribute('opacity', this.exprBase.blush && !s.back ? '1' : '0');
       // blink: swap eyes to closed lines while blinking (dots/wide only)
@@ -235,20 +259,20 @@
     }
     // walk along an SVG path element between two fractions of its length
     // walk along a path; `trail` keeps the cat that many units behind the leader along the same path (single file)
-    async walkAlong(pathEl, from, to, dur, { offsetX = 0, offsetY = 0, stepHz = 4, trail = 0 } = {}) {
-      const len = pathEl.getTotalLength(); const start = { x: this.s.x, y: this.s.y };
+    async walkAlong(pathEl, from, to, dur, { offsetX = 0, offsetY = 0, stepHz = 1.4, trail = 0, easing = null } = {}) {   // stepHz: paw-swap cycles per second (two bobs each)
+      const len = pathEl.getTotalLength(); const start = { x: this.s.x, y: this.s.y }; const ez = easing || ease.walk;
       const dist = (e) => Math.min(len, Math.max(0, len * (from + (to - from) * e) - trail));
       const p0 = pathEl.getPointAtLength(dist(0)); p0.x += offsetX; p0.y += offsetY;
       await tween(dur, (t) => {
-        const e = ease.inOut(t); const d = dist(e);
+        const e = ez(t); const d = dist(e);
         const p = pathEl.getPointAtLength(d); const q = pathEl.getPointAtLength(Math.min(len, Math.max(0, d + (to > from ? 2 : -2))));
         if (Math.abs(q.x - p.x) > 0.4) this.faceDir(q.x > p.x ? 1 : -1);
         const blend = Math.min(1, d / Math.max(30, trail * 0.6)); // from where the cat stood onto the path over its first stretch (a follower waits in place first)
         const ox = (start.x - p0.x) * (1 - blend), oy = (start.y - p0.y) * (1 - blend);
         const step = Math.sin(t * dur / 1000 * stepHz * 2 * Math.PI);
-        this.s.x = p.x + ox + offsetX; this.s.y = p.y + oy + offsetY - Math.abs(step) * 1.6; this.s.air = Math.abs(step) * 1.6;
+        this.s.x = p.x + ox + offsetX; this.s.y = p.y + oy + offsetY - Math.abs(step) * 2.2; this.s.air = Math.abs(step) * 2.2;
         this.s.pawL = step > 0 ? 1 : 0; this.s.pawR = step > 0 ? 0 : 1;
-        this.s.lean = 1.5 * Math.sin(Math.PI * t) * this.s.flip * this.mirror; this.s.tail = 6 * step;
+        this.s.lean = 1.2 * Math.sin(Math.PI * t) * this.s.flip * this.mirror; this.s.tail = 5 * step;
         this.render();
       });
       this.s.pawL = this.s.pawR = 0; this.s.lean = 0; this.s.tail = 0; this.s.air = 0; this.render();
@@ -308,13 +332,172 @@
       for (let i = 0; i < times; i++) await tween(220, (t) => { const b = Math.sin(Math.PI * t); this.s.bob = -3 * b; this.s.sy = 1 + 0.03 * b; this.s.tilt = 4 * Math.sin(2 * Math.PI * t); this.render(); });
       this.s.raiseL = 0; this.s.raiseR = 0; this.s.bob = 0; this.s.sy = 1; this.s.tilt = 0; this.render();
     }
+    // look at the viewer: face forward, eyes a little wide, a tiny tilt
+    async lookAtViewer(dur = 240) { await Promise.all([this.lookAt(0, dur), this.tiltTo(0, dur)]); }
+    async lookUp(amount = 1, dur = 260) { const from = this.s.gazeY; await tween(dur, (t) => { this.s.gazeY = from + (-amount - from) * ease.out(t); this.render(); }); }
+    async lookDown(amount = 1, dur = 260) { const from = this.s.gazeY; await tween(dur, (t) => { this.s.gazeY = from + (amount - from) * ease.out(t); this.render(); }); }
+    async gazeReset(dur = 240) { const from = this.s.gazeY; await tween(dur, (t) => { this.s.gazeY = from * (1 - ease.out(t)); this.render(); }); }
+    // a comic double take: glance, look away, snap back wide-eyed
+    async doubleTake(dir = 1) {
+      const expr = this.expr;
+      await this.lookAt(dir, 180); await wait(260); await this.lookAt(-dir * 0.6, 160); await wait(140);
+      this.setExpression('surprised'); await Promise.all([this.lookAt(dir, 90), this.perk()]); await wait(420);
+      this.setExpression(expr);
+    }
+    // the hard hat drops onto the head with a little bounce
+    async helmetOn() {
+      this.s.helmet = 1; this.s.helmetDrop = 150; this.render();
+      await tween(380, (t) => { const e = ease.in(t); this.s.helmetDrop = 150 * (1 - e); this.render(); });
+      TA.Sound.play('clank');
+      await tween(260, (t) => { const b = Math.sin(Math.PI * t); this.s.helmetDrop = 7 * b; this.s.sy = 1 - 0.06 * b; this.s.sx = 1 + 0.04 * b; this.s.earL = -14 * b; this.s.earR = 14 * b; this.render(); });
+      this.s.helmetDrop = 0; this.s.sx = this.s.sy = 1; this.s.earL = this.s.earR = 0; this.render();
+    }
+    async sweatDrop(ms = 1400) { await tween(260, (t) => { this.s.sweat = ease.out(t); this.render(); }); await wait(ms); await tween(300, (t) => { this.s.sweat = 1 - t; this.render(); }); this.s.sweat = 0; this.render(); }
+    // the triumphant mountaineer: chest out, one paw high, chin up
+    async triumph(ms = 900) {
+      const expr = this.expr; this.setExpression('proud'); this.s.raiseR = 1;
+      await tween(260, (t) => { const e = ease.out(t); this.s.sy = 1 + 0.06 * e; this.s.sx = 1 - 0.03 * e; this.s.lean = -5 * e * this.s.flip * this.mirror; this.render(); });
+      await wait(ms);
+      this.s.raiseR = 0; this.setExpression(expr); await this.settle(240);
+    }
+    // showing off: a pirouette that gets away from him. He winds up, spins faster and faster, the spin
+    // goes wrong (the body wobbles off its axis), and he ends dizzy and swaying. Returns when he is swaying.
+    async failedPirouette(onDizzy) {
+      const y0 = this.s.y, x0 = this.s.x, flip0 = this.s.flip;
+      this.setExpression('proud'); await this.crouch(0.12, 260); await wait(120);
+      this.s.raiseL = 1; this.s.raiseR = 1; this.setExpression('determined'); this.render();
+      let th = 0;
+      await tween(2100, (t) => {
+        const speed = 2 + 14 * t * t;                                  // turns per second, accelerating
+        th += speed * (16 / 1000) * 2 * Math.PI;                       // frame-rate independent enough at 60fps
+        const c = Math.cos(th); this.s.sx = Math.sign(c || 1) * Math.max(0.14, Math.abs(c)); this.s.back = c < 0;
+        const wobble = Math.max(0, t - 0.55) / 0.45;                   // the axis starts to go after half way
+        this.s.lean = Math.sin(th * 0.37) * 16 * wobble; this.s.x = x0 + Math.sin(th * 0.23) * 9 * wobble;
+        const lift = Math.sin(Math.PI * Math.min(1, t * 1.3)); this.s.y = y0 - 8 * lift; this.s.air = 8 * lift; this.s.sy = 1 + 0.05 * lift;
+        this.s.tail = -Math.sin(th) * 16; this.s.earL = -Math.sin(th) * 9; this.s.earR = Math.sin(th) * 9;
+        if (t > 0.8 && this.expr !== 'surprised') this.setExpression('surprised');
+        this.render();
+      });
+      this.s.raiseL = this.s.raiseR = 0; this.s.back = false; this.s.flip = flip0; this.s.y = y0; this.s.air = 0; this.s.sy = 1; this.s.sx = 1;
+      this.setExpression('dizzy'); this.render(); if (onDizzy) onDizzy();
+      this.swaying = true; const t0 = performance.now();
+      const sway = () => { if (!this.swaying) return; const t = (performance.now() - t0) / 1000; this.s.lean = Math.sin(t * 5.2) * 11; this.s.tilt = Math.sin(t * 3.1) * 12; this.s.x = x0 + Math.sin(t * 2.6) * 5; this.render(); requestAnimationFrame(sway); };
+      if (!REDUCED) requestAnimationFrame(sway);
+    }
+    // she takes his paw: he steadies, the sway dies down, both blush
+    async steady(dur = 900) {
+      this.swaying = false; const l0 = this.s.lean, t0 = this.s.tilt, x0 = this.s.x;
+      await tween(dur, (t) => { const e = ease.out(t); const damp = (1 - e) * Math.cos(t * 9); this.s.lean = l0 * damp; this.s.tilt = t0 * damp; this.render(); });
+      this.s.lean = 0; this.s.tilt = 0; this.render();
+    }
+    // the sway gives out: he goes down flat on the ice, a dizzy puddle of a cat (squashed, tail flopped out)
+    async flop(dur = 340) {
+      this.swaying = false; const l0 = this.s.lean, t0 = this.s.tilt;
+      await tween(dur, (t) => { const e = ease.in(t); this.s.sy = 1 - 0.52 * e; this.s.sx = 1 + 0.38 * e; this.s.lean = l0 * (1 - e); this.s.tilt = t0 * (1 - e) + 10 * e; this.s.tail = 28 * e; this.s.raiseL = this.s.raiseR = 0; this.render(); });
+      TA.Sound.play('land');
+      await tween(180, (t) => { const b = Math.sin(Math.PI * t); this.s.sy = 0.48 - 0.05 * b; this.s.sx = 1.38 + 0.06 * b; this.render(); });
+    }
+    // ...and back on his feet with a spring (an overshoot, then settled)
+    async springUp(dur = 380) {
+      const sy0 = this.s.sy, sx0 = this.s.sx, tl0 = this.s.tail, t0 = this.s.tilt;
+      await tween(dur, (t) => { const e = ease.out(t); const o = Math.sin(Math.PI * t) * 0.2; this.s.sy = sy0 + (1 - sy0) * e + o; this.s.sx = sx0 + (1 - sx0) * e - o * 0.6; this.s.tail = tl0 * (1 - e); this.s.tilt = t0 * (1 - e); this.render(); });
+      this.s.sy = 1; this.s.sx = 1; this.s.tail = 0; this.s.tilt = 0; this.render();
+    }
+    // a very short, very silly synchronized dance: sway with paws up, tail swinging, four beats
+    async dance(beats = 4, beatMs = 250) {
+      const y0 = this.s.y; this.s.raiseL = 1; this.s.raiseR = 1; const expr = this.expr; this.setExpression('joy');
+      for (let i = 0; i < beats; i++) {
+        const dir = i % 2 ? -1 : 1;
+        await tween(beatMs, (t) => { const b = Math.sin(Math.PI * t); this.s.lean = dir * 9 * Math.sin(Math.PI * Math.min(1, t * 1.6)); this.s.y = y0 - 7 * b; this.s.air = 7 * b; this.s.sy = 1 + 0.06 * b; this.s.sx = 1 - 0.04 * b; this.s.tail = dir * 18; this.s.tilt = dir * 6; this.render(); });
+      }
+      this.s.raiseL = this.s.raiseR = 0; this.s.y = y0; this.s.air = 0; this.setExpression(expr); await this.settle(220); this.s.tilt = 0; this.render();
+    }
+    // a near-slip on the snow: the feet shoot forward, the body tips back with the arms out, then a quick scramble upright
+    async nearSlip() {
+      const expr = this.expr; const x0 = this.s.x; const fwd = this.s.flip * this.mirror * -1;   // which way is "forward" on screen for this cat
+      this.setExpression('surprised'); this.s.raiseL = 1; this.s.raiseR = 1; TA.Sound.play('slip');
+      await tween(240, (t) => { const e = ease.out(t); this.s.lean = -16 * e * fwd * -1; this.s.x = x0 + 10 * e * fwd * -1; this.s.sx = 1 + 0.08 * e; this.s.sy = 1 - 0.1 * e; this.s.earL = 14 * e; this.s.earR = -14 * e; this.render(); });
+      await wait(140);
+      await tween(300, (t) => { const b = Math.sin(Math.PI * t); const e = ease.inOut(t); this.s.lean = -16 * (1 - e) * fwd * -1 + 6 * b * fwd; this.s.sx = 1 + 0.08 * (1 - e) - 0.03 * b; this.s.sy = 1 - 0.1 * (1 - e) + 0.05 * b; this.s.bob = -3 * b; this.render(); });
+      this.s.raiseL = this.s.raiseR = 0; this.s.lean = 0; this.s.sx = this.s.sy = 1; this.s.bob = 0; this.s.earL = this.s.earR = 0; this.setExpression(expr); this.render();
+    }
+    // the cat-slap: he turns to the viewer with a flat look, leans in close (scales up a touch), and swipes.
+    // `onSwipe` lets the scene draw the swipe arc and play the sound at the moment of impact.
+    async slap(onSwipe) {
+      const expr = this.expr; const flip0 = this.s.flip; const x0 = this.s.x, y0 = this.s.y, lean0 = this.s.lean;
+      this.setExpression('stern'); await this.lookAtViewer(220); await wait(520);
+      await tween(200, (t) => { const e = ease.out(t); this.s.sx = 1 + 0.16 * e; this.s.sy = 1 + 0.16 * e; this.s.y = y0 + 6 * e; this.s.lean = lean0 * (1 - e); this.render(); });
+      this.s.raiseR = 1; this.render(); await wait(160);
+      await tween(90, (t) => { this.s.lean = -14 * t * this.s.flip * this.mirror; this.s.gaze = 0; this.render(); });
+      if (onSwipe) onSwipe(this.pawPoint('r'));
+      await tween(140, (t) => { const e = ease.out(t); this.s.lean = (-14 + 26 * e) * this.s.flip * this.mirror; this.render(); });
+      await wait(260);
+      await tween(300, (t) => { const e = ease.inOut(t); this.s.sx = 1.16 - 0.16 * e; this.s.sy = 1.16 - 0.16 * e; this.s.y = y0 + 6 * (1 - e); this.s.lean = 12 * (1 - e) * this.s.flip * this.mirror + lean0 * e; this.render(); });
+      this.s.raiseR = 0; this.s.flip = flip0; this.s.x = x0; this.s.y = y0; this.s.lean = lean0; this.setExpression(expr); this.render();
+    }
+    // "no.": the head shakes side to side (eyes and face sweep, a little counter-tilt, ears flat); onBeat(i) fires at each turn
+    async shakeHead(times = 3, dur = 900, onBeat = null) {
+      let last = -1;
+      await tween(dur, (t) => {
+        const w = Math.sin(t * times * 2 * Math.PI) * Math.sin(Math.PI * Math.min(1, t * 1.15));
+        this.s.gaze = w * 1.1 * this.mirror; this.s.tilt = -w * 5; this.s.earL = -8; this.s.earR = 8;
+        const beat = Math.floor(t * times * 2); if (beat !== last) { last = beat; if (onBeat) onBeat(beat); }
+        this.render();
+      });
+      this.s.gaze = 0; this.s.tilt = 0; this.s.earL = this.s.earR = 0; this.render();
+    }
+    // the bouncer's stance: planted wide, both paws up, stern. guard(false) relaxes it.
+    guard(on = true) { this.s.raiseL = this.s.raiseR = on ? 1 : 0; this.s.sx = on ? 1.1 : 1; this.render(); return this; }
+    // paws over the eyes (bashful); call with 0 to peek out again
+    async coverFace(on = 1) { this.s.cover = on; this.render(); }
     async bounce(height = 10, dur = 420) { const y0 = this.s.y; await tween(dur, (t) => { const a = Math.sin(Math.PI * t); this.s.y = y0 - height * a; this.s.air = height * a; this.s.sy = 1 + 0.05 * a; this.s.sx = 1 - 0.03 * a; this.render(); }); this.s.y = y0; this.s.air = 0; this.s.sx = this.s.sy = 1; this.render(); }
     async nuzzle(dir, dur = 420) { await Promise.all([this.leanTo(dir * 7, dur), this.tiltTo(dir * 6, dur)]); }
+  }
+
+  // ---------------------------------------------------------- petting (the easter egg)
+  // A tap on a cat that is standing around earns a little reaction; a few variations so it never repeats
+  // twice in a row. Tapping the pink cat again and again makes her more and more bashful: on every third
+  // tap she hides behind her paws and leans on him, and he goes pink. `idle()` is the scene's say on
+  // whether the cats are free right now; nothing happens while a choreography runs.
+  function pettable(blue, pink, idle) {
+    let busy = false, last = -1, pinkTaps = 0;
+    const other = (c) => (c === blue ? pink : blue);
+    const reactions = [
+      async (c) => { TA.Sound.play('mew'); const e = c.expr; c.setExpression('pleased'); await c.tiltTo(8, 200); await c.blinkOnce(); await wait(260); await c.tiltTo(0, 200); c.setExpression(e); },
+      async (c) => { TA.Sound.play('purr'); const e = c.expr; c.setExpression('joy'); await c.perk(); await wait(380); c.setExpression(e); },
+      async (c) => { TA.Sound.play('meow'); const e = c.expr; c.setExpression('delighted'); await c.bounce(9, 380); await wait(120); c.setExpression(e); },
+      async (c) => { TA.Sound.play('mew'); const e = c.expr; c.setExpression('shy'); await c.lookAtViewer(200); await c.blinkOnce(); await wait(420); await c.lookAt(c.s.gaze, 1); c.setExpression(e); },
+    ];
+    async function bashful() {
+      const toward = Math.sign(blue.s.x - pink.s.x) || -1;           // which way he is, in screen terms
+      const eb = blue.expr, ep = pink.expr;
+      TA.Sound.play('meowShy');
+      pink.setExpression('bashful'); pink.coverFace(1); await pink.leanTo(toward * 9, 320);
+      await wait(260); blue.setExpression('pleased'); await blue.blinkOnce(); await blue.tiltTo(-6, 220);
+      await wait(1100);
+      pink.coverFace(0); await Promise.all([pink.leanTo(0, 300), blue.tiltTo(0, 220)]);
+      pink.setExpression(ep); blue.setExpression(eb);
+    }
+    const onTap = async (c, e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (busy || (idle && !idle())) return;
+      busy = true;
+      try {
+        if (c === pink && ++pinkTaps % 3 === 0) await bashful();
+        else { let i; do { i = Math.floor(Math.random() * reactions.length); } while (i === last); last = i; await reactions[i](c); }
+      } finally { busy = false; }
+    };
+    [blue, pink].forEach((c) => {
+      c.el.classList.add('pettable'); c.el.setAttribute('role', 'button'); c.el.setAttribute('tabindex', '-1'); c.el.setAttribute('aria-label', `${c.kind} cat`);
+      c.el.addEventListener('click', (e) => onTap(c, e));
+    });
+    return { reset() { pinkTaps = 0; } };
   }
 
   // ---------------------------------------------------------- public API
   TA.cat = {
     markup: catMarkup,
+    pettable,
     attach(svg, id, kind, h) { const el = svg.querySelector(`.ccat[data-id="${id}"]`); return new CatAnimationController(el, kind, h); },
     EXPRESSIONS: Object.keys(EXPRESSIONS),
     // a scene registers its cats; one rAF loop drives their idle life

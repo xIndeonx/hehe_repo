@@ -20,6 +20,8 @@ window.TA_CONTENT = {
     title: 'open the little map',
     instruction: 'tap the three folded corners to open the map.',
     helper: 'each little fold hides a clue.',
+    note: 'probably the right way.',
+    note2: 'trust me.',
     bridge: 'a tiny rink... and a secret upstairs!',
     next: 'follow the map',
   },
@@ -31,6 +33,23 @@ window.TA_CONTENT = {
     helper: 'tap a piece to rotate it.',
     bridge: 'pawprints all the way to the rink!',
     next: 'on to the booth',
+  },
+
+  balcony: {
+    eyebrow: 'a tiny flashback',
+    title: 'operation: totally normal entrance',
+    instruction: 'a true story from geneva. mostly.',
+    skip: 'skip the flashback',
+    captions: {
+      arrive: 'once upon a time, a very clever cat visited geneva...',
+      problem: 'there was just one tiny problem.',
+      forgot: 'he forgot the door code.',
+      plan: 'fortunately, he had a perfectly reasonable backup plan.',
+      her: 'oh. it’s this guy again.',
+    },
+    bridge: 'some cats never learn.',
+    bridge2: 'good thing we’re building proper stairs this time.',
+    next: 'build proper stairs',
   },
 
   stairs: {
@@ -50,6 +69,8 @@ window.TA_CONTENT = {
     title: 'one little spin to unlock it',
     instruction: 'tap the four glowing beats to help them twirl.',
     helper: 'no rush \u2014 it\u2019s not a timing game.',
+    nailed: 'nailed it.',
+    dance: 'a secret little dance',
     bridge: 'the little ice lock clicked open!',
     next: 'open it ♡',
   },
@@ -69,11 +90,50 @@ window.TA_CONTENT = {
     copyFail: 'your browser blocked copying, so here is the letter to select and copy by hand:',
     byHand: 'write it by hand instead ♡',
     byHandNote: 'lovely. any paper will do. don’t forget the secret word.',
-    replay: 'replay our little adventure',
+    toOffice: 'file the official paperwork ♡',
+    toOfficeHint: 'the department needs your decision in writing.',
     letter: (answer, date, note, word) =>
       `dear blue cat,\n\nmy answer: ${answer}\nthe date that works for me: ${date}` +
       (note ? `\n\na little note: ${note}` : '') +
       `\n\nsecret word: ${word}\n\n♡ pink cat`,
+  },
+
+  // the last view: the department's counter, and the application that doubles as her reply
+  office: {
+    eyebrow: 'one last formality',
+    title: 'the official paperwork',
+    instruction: 'the department of extremely important romantic affairs requires her majesty’s decision in writing.',
+    helper: 'pick what fits, add a remark if you like, then stamp it.',
+    doc: {
+      title: 'official date application',
+      dept: 'department of extremely important romantic affairs',
+      rows: [
+        ['applicant', 'one suspiciously enthusiastic blue cat'],
+        ['purpose', 'attendance at art on ice with a very special pink cat'],
+        ['secret authorization code', '{word}'],
+        ['delivery method', 'carrier pigeon, naturally.'],
+      ],
+      statusLabel: 'status',
+      status: { none: 'awaiting her majesty’s decision', yes: 'approved. the applicant is beside himself.', check: 'pending. the applicant is pacing.', no: 'declined. an appeal has been filed.' },
+      footnote: 'form 1/1 · filed in triplicate · one copy eaten',
+    },
+    decision: 'her majesty’s decision',
+    date: 'preferred date',
+    remarks: 'royal remarks (optional)',
+    remarksPlaceholder: 'a little note for the applicant...',
+    stampBtn: 'stamp it ♡',
+    restampBtn: 'stamp it again',
+    stamps: { yes: 'approved', check: 'pending', no: 'declined' },
+    gag: ['no.', 'nice try.', 'still no.', 'we’ve been over this.'],   // what the clerk says when he drops onto a "no" button; he never lets it through
+    dispatched: { yes: 'carrier pigeon dispatched. he is beside himself.', check: 'carrier pigeon dispatched. he will wait by the window.', no: 'carrier pigeon dispatched. he has filed an appeal.' },
+    replyTitle: 'the official reply',
+    replyHint: 'this is the letter the pigeon carries. the pigeon is imaginary, so please copy it into a message (or write it by hand).',
+    copy: 'copy my little letter',
+    copied: 'copied! paste it into a message ♡',
+    copyFail: 'your browser blocked copying, so here is the letter to select and copy by hand:',
+    byHand: 'write it by hand instead ♡',
+    byHandNote: 'lovely. any paper will do. don’t forget the secret word.',
+    replay: 'replay our little adventure',
   },
 
   ui: {

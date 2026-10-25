@@ -95,6 +95,28 @@
         unlock: () => { this.tone(660, t, 0.06, 'square', 0.03); this.tone(990, t + 0.09, 0.22, 'sine', 0.07); },
         flourish: () => { [523, 659, 784, 1046, 1318].forEach((f, i) => this.tone(f, t + i * 0.09, 0.3, 'triangle', 0.06)); this.tone(2093, t + 0.5, 0.6, 'sine', 0.04); this.noise(t + 0.3, 0.6, 4000, 7000, 0.015, 2); },
         tada: () => { [523, 659, 784, 1046].forEach((f, i) => this.tone(f, t + i * 0.11, 0.28, 'triangle', 0.08)); this.tone(1318, t + 0.46, 0.5, 'sine', 0.06); },
+        // --- the comedy
+        key: () => this.tone(1046 + Math.random() * 300, t, 0.07, 'square', 0.03),
+        beepOk: () => { this.tone(880, t, 0.08, 'sine', 0.06); this.tone(1318, t + 0.1, 0.16, 'sine', 0.06); },
+        buzz: () => { this.tone(196, t, 0.16, 'square', 0.035); this.tone(185, t + 0.2, 0.22, 'square', 0.035); },
+        slip: () => { this.noise(t, 0.22, 2600, 900, 0.03, 0.8); this.tone(520, t, 0.16, 'sine', 0.05, 240); },
+        hmm: () => { this.tone(523, t, 0.12, 'triangle', 0.04, 587); this.tone(659, t + 0.14, 0.18, 'triangle', 0.04); },
+        plink: () => this.tone(1760, t, 0.12, 'sine', 0.04, 1500),
+        tumble: () => { this.noise(t, 0.5, 700, 300, 0.02, 0.7); this.noise(t + 0.55, 0.5, 700, 300, 0.015, 0.7); },
+        sting: () => { this.tone(110, t, 1.4, 'sawtooth', 0.03); [220, 277, 330].forEach((f) => { this.tone(f, t + 0.2, 0.5, 'square', 0.022); this.tone(f * 1.19, t + 0.75, 0.7, 'square', 0.025); }); this.noise(t + 0.7, 0.8, 300, 1200, 0.012, 0.5); },
+        clank: () => { this.tone(880, t, 0.05, 'square', 0.05, 660); this.tone(1320, t + 0.02, 0.18, 'triangle', 0.04); this.noise(t, 0.08, 3000, 1500, 0.03, 1); },
+        kiss: () => { this.tone(1046, t, 0.07, 'sine', 0.07, 1568); this.tone(1318, t + 0.06, 0.12, 'sine', 0.06, 880); this.noise(t + 0.02, 0.05, 2400, 900, 0.015, 1); },
+        sparkle: () => { this.tone(2093, t, 0.1, 'sine', 0.04); this.tone(2637, t + 0.07, 0.14, 'sine', 0.035); this.tone(3136, t + 0.15, 0.22, 'sine', 0.03); },
+        meowShy: () => { this.tone(700, t, 0.28, 'triangle', 0.04, 480, 10); this.tone(900, t + 0.08, 0.2, 'sine', 0.025, 560); },
+        mew: () => { this.tone(820, t, 0.12, 'triangle', 0.04, 1040, 12); },
+        purr: () => { this.noise(t, 0.5, 90, 70, 0.03, 4); this.tone(60, t, 0.5, 'triangle', 0.03, 55, 20); },
+        whirr: () => { this.tone(300, t, 1.6, 'sine', 0.03, 1400, 18); this.noise(t, 1.6, 800, 4000, 0.015, 0.8); },
+        wobble: () => { this.tone(440, t, 0.9, 'sine', 0.04, 300, 40); this.tone(660, t + 0.1, 0.8, 'triangle', 0.02, 500, 30); },
+        record: () => { this.noise(t, 0.3, 1800, 200, 0.05, 0.6); this.tone(900, t, 0.3, 'sawtooth', 0.02, 120); },
+        soft: () => { [523, 659, 784].forEach((f, i) => this.tone(f, t + i * 0.16, 0.9, 'sine', 0.035)); this.tone(1046, t + 0.5, 1.2, 'sine', 0.025); },
+        stamp: () => { this.tone(120, t, 0.08, 'square', 0.08, 70); this.noise(t, 0.12, 400, 150, 0.05, 1); },
+        pop: () => this.tone(600, t, 0.06, 'sine', 0.06, 900),
+        slapp: () => { this.noise(t, 0.09, 1800, 600, 0.09, 0.7); this.tone(220, t, 0.08, 'triangle', 0.07, 90); this.tone(1400, t + 0.01, 0.05, 'square', 0.02); },
       };
       if (s[name]) s[name]();
     },
@@ -138,6 +160,8 @@
     inOut: (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t),
     out: (t) => 1 - (1 - t) * (1 - t),
     in: (t) => t * t,
+    // a walk: a short ease-in, a constant stride, a short ease-out (no sprint in the middle)
+    walk: (t) => { const a = 0.18; if (t < a) return (t * t) / (2 * a) / (1 - a); if (t > 1 - a) { const u = 1 - t; return 1 - (u * u) / (2 * a) / (1 - a); } return (t - a / 2) / (1 - a); },
   };
   function tween(dur, fn) {
     return new Promise((res) => {
@@ -224,7 +248,11 @@
   };
 
   // ---------------------------------------------------------- chapters & routing
-  const ORDER = ['prologue', 'map', 'lane', 'stairs', 'rink', 'epilogue'];
+  // the scenes in order; the balcony is a little flashback between two chapters, not a chapter itself
+  const ORDER = ['prologue', 'map', 'lane', 'balcony', 'stairs', 'rink', 'epilogue', 'office'];
+  const CHAPTERS = ['map', 'lane', 'stairs', 'rink'];
+  // what the header shows for a scene: the chapter number, or for the interlude the chapters done so far
+  const chapterNo = (name) => { const i = CHAPTERS.indexOf(name); if (i >= 0) return i + 1; if (name === 'balcony') return 2; return 0; };
   const TA = window.TA = { scenes: {}, registerScene(name, factory) { this.scenes[name] = factory; }, helpers: { svgEl, tween, wait, ease, spawnHearts, spawnStar, Doodle, flash, REDUCED }, Sound, store };
   let current = null;        // chapter name
   let instance = null;       // active scene instance
@@ -236,13 +264,14 @@
   function layoutOf(container) { const host = container.parentElement || container; const l = (host.clientWidth >= 620 && window.innerWidth > window.innerHeight * 0.95) ? 'wide' : 'tall'; container.classList.toggle('tall', l === 'tall'); return l; }
 
   function setProgress(name) {
-    const idx = ORDER.indexOf(name);
+    const n = chapterNo(name); const inter = name === 'balcony';
     const p = $('progress');
-    app.classList.toggle('in-chapter', idx >= 1 && idx <= 4);
-    if (idx >= 1 && idx <= 4) {
+    app.classList.toggle('in-chapter', n >= 1);
+    if (n >= 1) {
       p.hidden = false;
-      $('progressText').textContent = C.ui.progressOf(idx);
-      p.querySelectorAll('.progress-hearts i').forEach((h, i) => h.classList.toggle('on', i < idx - 1));
+      $('progressText').textContent = C.ui.progressOf(n);
+      // hearts: the chapters finished so far (during the flashback, the two before it)
+      p.querySelectorAll('.progress-hearts i').forEach((h, i) => h.classList.toggle('on', i < (inter ? 2 : n - 1)));
     } else p.hidden = true;
   }
   function markHeart(idx) {
@@ -257,7 +286,7 @@
     if (!current) return;
     const section = sectionOf(current); const art = section.querySelector('.scene-art'); const svg = art && art.querySelector('svg');
     if (!svg) return;
-    if (current === 'epilogue') { svg.style.maxHeight = ''; return; }
+    if (current === 'epilogue' || current === 'office') { svg.style.maxHeight = ''; return; }   // the two pages that may scroll
     svg.style.maxHeight = '';
     const ok = section.querySelector('.scene-success'), ctrl = section.querySelector('.scene-controls');
     let reserve = 0;
@@ -287,15 +316,23 @@
       layout: () => layoutOf(art),
       progress(text) { const el = section.querySelector('.scene-progress'); if (el) el.textContent = text || ''; },
       announce(text) { $('srLive').textContent = text; },
+      // a one-line caption over the drawing (the storytelling voice); empty text hides it
+      caption(text, ms = 0) {
+        let el = art.querySelector('.scene-caption');
+        if (!el) { el = document.createElement('p'); el.className = 'scene-caption'; el.setAttribute('aria-live', 'polite'); art.appendChild(el); }
+        clearTimeout(el._t);
+        if (!text) { el.classList.remove('show'); el._t = setTimeout(() => { if (!el.classList.contains('show')) el.textContent = ''; }, 300); return; }
+        el.classList.remove('show'); void el.offsetWidth; el.textContent = text; el.classList.add('show');
+        if (ms) el._t = setTimeout(() => el.classList.remove('show'), ms);
+      },
       complete() {
-        const idx = ORDER.indexOf(name);
         completed.add(name);
-        markHeart(idx - 1);
+        const ci = CHAPTERS.indexOf(name); if (ci >= 0) markHeart(ci);
         const ctrl = section.querySelector('.scene-controls'); if (ctrl) ctrl.hidden = true;
         const help = section.querySelector('.scene-helper'); if (help) help.hidden = true;   // the how-to is done with; its line goes to the success panel
         const ok = section.querySelector('.scene-success'); if (ok) { ok.hidden = false; const b = ok.querySelector('button'); if (b) setTimeout(() => b.focus({ preventScroll: true }), 50); }
-        store.set(K_PROGRESS, String(idx + 1));
-        Sound.play('tada');
+        const nxt = ORDER[ORDER.indexOf(name) + 1]; if (nxt && nxt !== 'epilogue') store.set(K_PROGRESS, nxt);
+        if (name !== 'balcony') Sound.play('tada');
       },
       secret: SECRET,
     };
@@ -320,9 +357,9 @@
     section.hidden = false;
     setProgress(name);
     window.scrollTo({ top: 0, behavior: 'auto' });
-    const idx = ORDER.indexOf(name);
-    if (idx >= 1 && idx <= 4) store.set(K_PROGRESS, String(idx));
+    if (name !== 'prologue' && name !== 'epilogue' && name !== 'office') store.set(K_PROGRESS, name);
     if (name === 'epilogue') { store.set(K_PROGRESS, 'done'); setupEpilogue(); }
+    if (name === 'office') { store.set(K_PROGRESS, 'office'); setupOffice(); }
     mountScene(name);
     const h = section.querySelector('h1, h2'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
   }
@@ -353,30 +390,79 @@
   };
   window.addEventListener('resize', () => { clearTimeout(onResize._t); onResize._t = setTimeout(onResize, 160); });
 
-  // ---------------------------------------------------------- epilogue: reply builder
-  let epilogueReady = false;
-  function setupEpilogue() {
-    $('secretWord').textContent = SECRET;
-    if (epilogueReady) return;
-    epilogueReady = true;
-    const E = C.epilogue;
-    const state = { answer: E.answers[0], date: E.dateChoices[0], note: '' };
+  // ---------------------------------------------------------- epilogue: just the word
+  function setupEpilogue() { $('secretWord').textContent = SECRET; }
+
+  // ---------------------------------------------------------- the paperwork: the application that doubles as her reply
+  // The form is the official date application: her decision, the date and her remarks are its fields; "stamp it"
+  // slams APPROVED / PENDING / DECLINED onto it, the pigeon leaves with the letter, and the letter can be copied.
+  let officeReady = false;
+  function setupOffice() {
+    if (officeReady) return;
+    officeReady = true;
+    const O = C.office, E = C.epilogue, D = O.doc;
+    const kindOf = (answer) => ['yes', 'check', 'no'][E.answers.indexOf(answer)] || 'yes';
+    const state = { answer: E.answers[0], date: E.dateChoices[0], note: '', stamped: null };
+    const doc = $('paperwork');
+    const rows = D.rows.map(([k, v]) => `<div class="doc-row"><dt>${k}</dt><dd>${v.replace('{word}', `<strong>${SECRET}</strong>`)}</dd></div>`).join('');
+    doc.innerHTML = `<div class="doc-inner">
+        <div class="doc-crest" aria-hidden="true"><svg viewBox="0 0 60 60" width="56" height="56"><circle cx="30" cy="30" r="27" fill="#fff" stroke="#191717" stroke-width="2.4"/><circle cx="30" cy="30" r="22" fill="none" stroke="#f49fbb" stroke-width="1.6" stroke-dasharray="3 3"/><path d="M30 41 C 20 34, 16 28, 20 22 C 23 18, 28 19, 30 23 C 32 19, 37 18, 40 22 C 44 28, 40 34, 30 41 Z" fill="#f49fbb" stroke="#191717" stroke-width="2.2" stroke-linejoin="round"/></svg></div>
+        <p class="doc-dept">${D.dept}</p>
+        <h3 class="doc-title">${D.title}</h3>
+        <dl class="doc-rows">${rows}<div class="doc-row doc-status"><dt>${D.statusLabel}</dt><dd id="docStatus">${D.status.none}</dd></div></dl>
+        <div class="doc-fields">
+          <fieldset class="choice-group"><legend>${O.decision}</legend><div class="chips" id="answerChips" role="radiogroup" aria-label="${O.decision}"></div></fieldset>
+          <fieldset class="choice-group"><legend>${O.date}</legend><div class="chips" id="dateChips" role="radiogroup" aria-label="${O.date}"></div></fieldset>
+          <label class="note-label" for="noteField">${O.remarks}</label>
+          <textarea id="noteField" class="note" rows="2" maxlength="240" placeholder="${O.remarksPlaceholder}"></textarea>
+          <div class="doc-actions"><button id="btnStamp" class="btn btn-primary" type="button">${O.stampBtn}</button></div>
+        </div>
+        <p class="doc-foot">${D.footnote}</p>
+        <div class="doc-stamp" id="docStamp" aria-hidden="true" hidden><span></span></div>
+      </div>`;
     function chipGroup(host, options, key, pink) {
       host.innerHTML = '';
       options.forEach((opt) => {
         const b = document.createElement('button');
         b.type = 'button'; b.className = 'chip' + (pink ? ' chip-pink' : ''); b.textContent = opt;
         b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(state[key] === opt));
-        b.addEventListener('click', () => { state[key] = opt; host.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-checked', String(c === b))); Sound.play('tap'); update(); });
+        b.addEventListener('click', async () => {
+          // the two "no" decisions: the clerk drops onto the button and guards it (he gives in on the third try)
+          if (key === 'answer' && options.indexOf(opt) > 0 && TA.decisionGag) {
+            flash(b, 'shake', 400);
+            const allowed = await TA.decisionGag(b); if (!allowed) return;
+          }
+          state[key] = opt; host.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-checked', String(c === b))); Sound.play('tap'); update();
+          if (key === 'answer' && TA.officeDecision) TA.officeDecision(kindOf(opt));
+        });
         host.appendChild(b);
       });
     }
     chipGroup($('answerChips'), E.answers, 'answer', true);
     chipGroup($('dateChips'), E.dateChoices, 'date', false);
-    $('noteField').placeholder = E.notePlaceholder;
     $('noteField').addEventListener('input', (e) => { state.note = e.target.value.trim(); update(); });
     function letter() { return E.letter(state.answer, state.date, state.note, SECRET); }
-    function update() { $('letterPreview').textContent = letter(); $('copyStatus').textContent = ''; $('copyFallback').hidden = true; }
+    function update() {
+      $('letterPreview').textContent = letter(); $('copyStatus').textContent = ''; $('copyFallback').hidden = true;
+      // a stamped form follows a changed decision at once (the status line and the stamp)
+      if (state.stamped && state.stamped !== kindOf(state.answer)) applyStamp(true);
+    }
+    function applyStamp(quiet = false) {
+      const kind = kindOf(state.answer); state.stamped = kind;
+      const st = $('docStamp'); st.hidden = false; st.querySelector('span').textContent = O.stamps[kind]; st.className = `doc-stamp stamp-${kind}`;
+      $('docStatus').textContent = D.status[kind];
+      doc.classList.remove('stamped'); void doc.offsetWidth; doc.classList.add('stamped');
+      if (!quiet) Sound.play('rustle'); setTimeout(() => Sound.play('stamp'), quiet ? 60 : 420);
+      $('btnStamp').textContent = O.restampBtn;
+    }
+    $('btnStamp').addEventListener('click', () => {
+      const first = !state.stamped; applyStamp();
+      const kind = state.stamped;
+      const d = $('dispatch'); if (d.hidden) { d.hidden = false; d.classList.add('arrive'); }
+      $('copyStatus').textContent = '';
+      if (TA.officeStamped) TA.officeStamped(kind, first);
+      setTimeout(() => d.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 900);
+    });
     update();
     $('btnCopy').addEventListener('click', async () => {
       const text = letter();
@@ -388,19 +474,21 @@
           ok = document.execCommand && document.execCommand('copy');
         } catch (e) { ok = false; }
       }
-      if (ok) { $('copyStatus').textContent = E.copied; $('copyFallback').hidden = true; Sound.play('chime'); }
-      else { $('copyStatus').textContent = E.copyFail; const ta = $('copyFallback'); ta.hidden = false; ta.value = text; ta.focus(); ta.select(); }
+      if (ok) { $('copyStatus').textContent = O.copied; $('copyFallback').hidden = true; Sound.play('chime'); }
+      else { $('copyStatus').textContent = O.copyFail; const ta = $('copyFallback'); ta.hidden = false; ta.value = text; ta.focus(); ta.select(); }
     });
-    $('btnByHand').addEventListener('click', () => { $('copyStatus').textContent = E.byHandNote; Sound.play('tap'); });
+    $('btnByHand').addEventListener('click', () => { $('copyStatus').textContent = O.byHandNote; Sound.play('tap'); });
   }
 
   // ---------------------------------------------------------- boot (called by scenes.js once the scenes exist)
   TA.boot = () => {
     const h = (location.hash || '').replace('#', '');
-    if (['prologue', 'map', 'lane', 'stairs', 'rink', 'epilogue'].includes(h)) { go(h); return; }
+    if (ORDER.includes(h)) { go(h); return; }
     const saved = store.get(K_PROGRESS);
     if (saved === 'done') go('epilogue');
-    else if (saved && /^[1-4]$/.test(saved)) go(ORDER[Number(saved)]);
+    else if (saved === 'office') go('office');
+    else if (saved && /^[1-4]$/.test(saved)) go(['map', 'lane', 'stairs', 'rink'][Number(saved) - 1]);   // an older visit stored a number
+    else if (saved && ORDER.includes(saved)) go(saved);
     else go('prologue');
   };
 })();

@@ -93,6 +93,24 @@
       </div>
     </section>
 
+    <!-- ========== INTERLUDE: the balcony (a flashback, not a chapter) ========== -->
+    <section class="chapter chapter-balcony" id="ch-balcony" hidden aria-labelledby="h-balcony">
+      <div class="scene-head">
+        <p class="eyebrow" data-t="balcony.eyebrow"></p>
+        <h2 id="h-balcony" class="scene-title" data-t="balcony.title"></h2>
+        <p class="scene-instruction" data-t="balcony.instruction"></p>
+      </div>
+      <div class="scene-art" data-scene="balcony"></div>
+      <div class="scene-controls">
+        <button class="link-button" type="button" data-action="skip" data-t="balcony.skip"></button>
+      </div>
+      <div class="scene-success" hidden>
+        <p class="bridge" data-t="balcony.bridge"></p>
+        <p class="bridge bridge-2" data-t="balcony.bridge2"></p>
+        <button class="btn btn-primary" type="button" data-action="next" data-t="balcony.next"></button>
+      </div>
+    </section>
+
     <!-- ========== CHAPTER 3: STAIRS ========== -->
     <section class="chapter" id="ch-stairs" hidden aria-labelledby="h-stairs">
       <div class="scene-head">
@@ -143,29 +161,34 @@
         <p class="lead lead-tight" data-t="epilogue.sentence"></p>
       </div>
 
-      <div class="postcard" id="postcard">
-        <h2 class="postcard-title" data-t="epilogue.replyTitle"></h2>
-        <p class="postcard-hint" data-t="epilogue.replyHint"></p>
-        <fieldset class="choice-group">
-          <legend>my answer</legend>
-          <div class="chips" id="answerChips" role="radiogroup" aria-label="my answer"></div>
-        </fieldset>
-        <fieldset class="choice-group">
-          <legend>the date that works</legend>
-          <div class="chips" id="dateChips" role="radiogroup" aria-label="the date that works"></div>
-        </fieldset>
-        <label class="note-label" for="noteField" data-t="epilogue.noteLabel"></label>
-        <textarea id="noteField" class="note" rows="2" maxlength="240"></textarea>
+      <div class="reveal-next">
+        <p class="scene-helper reveal-hint" data-t="epilogue.toOfficeHint"></p>
+        <button class="btn btn-primary" type="button" data-action="next" data-t="epilogue.toOffice"></button>
+      </div>
+    </section>
+
+    <!-- ========== THE PAPERWORK (the department's counter; the application that doubles as her reply) ========== -->
+    <section class="chapter chapter-office" id="ch-office" hidden aria-labelledby="h-office">
+      <div class="scene-head">
+        <p class="eyebrow" data-t="office.eyebrow"></p>
+        <h2 class="scene-title" id="h-office" data-t="office.title"></h2>
+        <p class="scene-instruction" data-t="office.instruction"></p>
+        <p class="scene-helper" data-t="office.helper"></p>
+      </div>
+      <div class="scene-art scene-art-office" data-scene="office"></div>
+      <div class="paperwork form-paper" id="paperwork"></div>
+      <div class="dispatch" id="dispatch" hidden>
+        <h3 class="postcard-title" data-t="office.replyTitle"></h3>
+        <p class="postcard-hint" data-t="office.replyHint"></p>
         <pre class="letter-preview" id="letterPreview" aria-label="your letter"></pre>
         <div class="postcard-actions">
-          <button id="btnCopy" class="btn btn-primary" type="button" data-t="epilogue.copy"></button>
-          <button id="btnByHand" class="chip" type="button" data-t="epilogue.byHand"></button>
+          <button id="btnCopy" class="btn btn-primary" type="button" data-t="office.copy"></button>
+          <button id="btnByHand" class="chip" type="button" data-t="office.byHand"></button>
         </div>
         <p class="copy-status" id="copyStatus" aria-live="polite"></p>
         <textarea id="copyFallback" class="note copy-fallback" rows="7" readonly hidden></textarea>
       </div>
-
-      <button id="btnReplay" class="link-button" type="button" data-t="epilogue.replay"></button>
+      <button id="btnReplay" class="link-button" type="button" data-t="office.replay"></button>
     </section>
 
   </main>
@@ -179,6 +202,8 @@
 <script src="js/art.js"></script>
 <script src="js/cat.js"></script>
 <script src="js/scenes.js"></script>
+<script src="js/balcony.js"></script>
+<script src="js/office.js"></script>
 <script src="js/rink.js"></script>
 </body>
 </html>
